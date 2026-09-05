@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}bee stats{% endblock %}
+{% macro runs(rs, names=true) %}
+<table>
+  <tr>{% if names %}<th>name</th>{% endif %}<th>puzzle</th><th>started</th><th>words</th><th>score</th><th>rank</th><th>time</th><th>finished</th></tr>
+  {% for r in rs %}
+  <tr>{% if names %}<td>{{ r.name }}</td>{% endif %}<td><a href="/play/{{ r.code }}">{{ r.code }}</a>{% if r.daily %} <span class="muted">daily</span>{% endif %}</td><td>{{ r.local }}</td><td>{{ r.words|length }} / {{ r.total }}</td><td>{{ r.score }} / {{ r.max }}</td><td>{{ r.rank }}</td><td>{{ r.time }}</td><td>{{ "yes" if r.finished else "no" }}</td></tr>
+  {% endfor %}
+</table>
+{% endmacro %}
+{% block body %}
+<section class="card">
+  <h2>you</h2>
+  {% if mine %}
+  {% set dailies = mine|selectattr("daily")|list %}
+  <p class="big">daily streak: <strong>{{ streak }}</strong> {{ "day" if streak == 1 else "days" }}</p>
+  <p class="muted">{{ mine|length }} games, {{ mine|selectattr("finished")|list|length }} finished, {{ dailies|length }} {{ "daily" if dailies|length == 1 else "dailies" }} played{% if dailies %}: {{ dailies|map(attribute="day")|unique|sort|join(", ") }}{% endif %}</p>
+  {{ runs(mine, false) }}
+  {% else %}
+  <p class="muted">no games in this browser yet. history is kept per browser through a cookie, so play a puzzle and come back.</p>
+  {% endif %}
+</section>
+<section class="card">
+  <h2>top runs</h2>
+  <p class="muted">the best attempt on every puzzle, sorted by {% if by_time %}<strong>time</strong> or <a href="/stats?sort=words">words</a>{% else %}<strong>words</strong> or <a href="/stats?sort=time">time</a>{% endif %}. open a row for every attempt.</p>
+  {% for t in tops %}
+  <details class="top">
+    <summary><a href="/play/{{ t.code }}">{{ t.code }}</a><b>{{ t.best.name }}</b><span>{{ t.best.words|length }} / {{ t.best.total }} words</span><span>{{ t.best.score }} pts</span><span>{{ t.best.time }}</span><span class="muted">{{ t.runs|length }} {{ "attempt" if t.runs|length == 1 else "attempts" }}</span></summary>
+    {{ runs(t.runs) }}
+  </details>
+  {% else %}
+  <p class="muted">no games yet</p>
+  {% endfor %}
+</section>
+{% endblock %}

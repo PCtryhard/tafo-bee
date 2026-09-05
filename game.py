@@ -80,7 +80,7 @@ def rank(score: int, code: str) -> str:
 def random_code(rng: random.Random | None = None) -> str:
     rng, words = rng or random.Random(), candidates()
     for i in count():
-        letters = "".join(set(rng.choice(words)))
+        letters = "".join(sorted(set(rng.choice(words))))
         code = canon(letters, rng.choice(letters))
         n = len(words_for(code))
         if n >= 10 and (i >= 200 or MIN_WORDS <= n <= MAX_WORDS):

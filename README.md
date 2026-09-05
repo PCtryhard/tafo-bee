@@ -17,6 +17,10 @@ ADMIN_PASSWORD=x SECRET_KEY=dev flask --app app run --debug
 
 See `docs/DEPLOY.md`. Short version: `docker compose up -d` on a VPS with `bee.tafo.ch` pointed at it.
 
+## stats
+
+`/stats` is public. It lists the best attempt on every puzzle (most words, then fastest), sortable by words or time, and opens to show every attempt with the player names. The section at the top is personal: the games played in this browser, the dailies played and the current daily streak, all found through the session cookie.
+
 ## admin
 
 `/admin` (basic auth, password from `ADMIN_PASSWORD`) lists every game with player name, puzzle, words found, score, rank and time spent. `/admin.csv` exports the same.
@@ -42,6 +46,10 @@ SCOWL British English, see `data/README.md`. Replace `data/words.txt` to change 
 - The sqlite volume is mounted at `/data` with `DB_PATH=/data/bee.db` so it does not hide `data/words.txt` inside the image.
 - `.dockerignore` added to keep the venv, git history, tests and local databases out of the image.
 - `pytest` is cut from the image install by dropping everything below the `# dev` marker in `requirements.txt`.
+- `templates/stats.html` added for the public leaderboard and personal history page, requested after the first release.
+- Personal history on `/stats` is keyed on the session cookie, not the name, so two players with the same nickname stay apart; clearing cookies starts a fresh history.
+- A daily streak counts consecutive days with a game on that day's daily code, and survives until the end of the next day.
+- The daily puzzle now uses the Zurich date rather than the server's local date.
 - Chrome cannot render a headless window under about 500 px, so the 390 px layout was checked in an emulated mobile viewport instead.
 
 ## licence

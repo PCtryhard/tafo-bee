@@ -76,3 +76,4 @@ def test_daily_stable():
     day = date(2026, 9, 5)
     assert game.daily_code(day) == game.daily_code(day) and acceptable(game.daily_code(day))
     assert game.daily_code(day) != game.daily_code(date(2026, 9, 6))
+    assert game.daily_code(day) == "rbhiopt"  # fixed value guards against per process hash order
