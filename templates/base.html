@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}bee{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body data-theme="{{ theme }}">
+<nav>
+  <a href="/" class="brand">bee</a>
+  {% if name %}<span class="muted">{{ name }}</span>{% endif %}
+  <details class="themes">
+    <summary>theme: {{ theme }}</summary>
+    <div>{% for t in themes %}<a href="/theme/{{ t }}?next={{ request.path }}"{% if t == theme %} class="current"{% endif %}>{{ t }}</a>{% endfor %}</div>
+  </details>
+</nav>
+<main>{% block body %}{% endblock %}</main>
+</body>
+</html>

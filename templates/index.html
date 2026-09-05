@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block body %}
+<form method="post" action="/new" class="start card">
+  <label>your name <input name="name" value="{{ name }}" required maxlength="24" autocomplete="off"></label>
+  <p class="actions"><button name="action" value="random">random puzzle</button> <button name="action" value="daily">today's puzzle</button></p>
+  <fieldset>
+    <legend>your own letters</legend>
+    <label>seven letters <input name="letters" value="{{ form.letters if form else '' }}" autocomplete="off"></label>
+    <label>centre letter <input name="centre" value="{{ form.centre if form else '' }}" maxlength="1" autocomplete="off"></label>
+    <button name="action" value="manual">play these</button>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  </fieldset>
+</form>
+{% if open %}
+<section class="card">
+  <h2>unfinished games</h2>
+  <ul>{% for g in open %}<li><a href="/play/{{ g.code }}">{{ g.code }}</a> <span class="muted">{{ g.words|length }} / {{ g.total }} words, {{ g.score }} points</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

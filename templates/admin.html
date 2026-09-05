@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}bee admin{% endblock %}
+{% block body %}
+<section class="card admin">
+  <h2>players</h2>
+  <table>
+    <tr><th>name</th><th>games</th><th>finished</th><th>words</th><th>average</th><th>time</th></tr>
+    {% for n, p in players.items() %}
+    <tr><td><a href="/admin?name={{ n|urlencode }}">{{ n }}</a></td><td>{{ p.games }}</td><td>{{ p.finished }}</td><td>{{ p.words }}</td><td>{{ (100 * p.pct / p.games)|round|int }}%</td><td>{{ mmss(p.time) }}</td></tr>
+    {% endfor %}
+  </table>
+  <h2>games</h2>
+  <form method="get" class="filters">
+    <input name="name" placeholder="name" value="{{ request.args.name or '' }}"> <input name="code" placeholder="code" value="{{ request.args.code or '' }}">
+    <button>filter</button> <a class="button" href="/admin">all</a> <a class="button" href="/admin.csv?{{ request.query_string.decode() }}">csv</a>
+  </form>
+  <table>
+    <tr><th>name</th><th>puzzle</th><th>started</th><th>finished</th><th>words</th><th>score</th><th>rank</th><th>time</th></tr>
+    {% for r in rows %}
+    <tr><td>{{ r.name }}</td><td><a href="/play/{{ r.code }}">{{ r.code }}</a></td><td>{{ r.local }}</td><td>{{ "yes" if r.finished else "no" }}</td><td>{{ r.words|length }} / {{ r.total }}</td><td>{{ r.score }} / {{ r.max }}</td><td>{{ r.rank }}</td><td>{{ r.time }}</td></tr>
+    {% else %}
+    <tr><td colspan="8" class="muted">no games yet</td></tr>
+    {% endfor %}
+  </table>
+</section>
+{% endblock %}

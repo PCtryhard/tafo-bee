@@ -1,4 +1,5 @@
 flask
 gunicorn
+tzdata
 # dev
 pytest

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}bee {{ gm.code }} done{% endblock %}
+{% block body %}
+<section class="card summary">
+  <h2>{{ gm.code }}</h2>
+  <p class="big">{{ gm.score }} / {{ gm.max }} points, <strong>{{ gm.rank }}</strong></p>
+  <p>{{ gm.words|length }} / {{ gm.total }} words in {{ gm.time }}, {{ gm.missed|length }} missed</p>
+  <div class="bar"><i style="width:{{ (gm.pct * 100)|round|int }}%"></i></div>
+  <h3>found</h3>
+  <ul class="words">{% for w in gm.words %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% else %}<li class="muted">none</li>{% endfor %}</ul>
+  {% if gm.missed %}
+  <details class="reveal">
+    <summary>reveal the {{ gm.missed|length }} missed words</summary>
+    <ul class="words">{% for w in gm.missed %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+  <form method="post" action="/new" class="actions">
+    <a class="button" href="/play/{{ gm.code }}">play again</a>
+    <button name="action" value="random">new random</button>
+    <a class="button" href="/">home</a>
+  </form>
+</section>
+{% endblock %}
