@@ -55,7 +55,7 @@ $('shuffle').onclick = () => {
   outer.forEach((b, i) => { b.dataset.letter = ls[i]; b.textContent = ls[i]; });
 };
 document.addEventListener('keydown', e => {
-  if (e.target.closest('form, details') || e.ctrlKey || e.metaKey) return;
+  if (e.target.closest?.('form, details') || e.ctrlKey || e.metaKey) return;
   if (e.key === 'Backspace') del(); else if (e.key === 'Enter') submit(); else if (/^[a-z]$/i.test(e.key)) add(e.key.toLowerCase()); else return;
   e.preventDefault();
 });
