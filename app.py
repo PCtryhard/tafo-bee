@@ -6,7 +6,7 @@ import game, store
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
-THEMES = ["classic", "loveydovey", "midnight", "forest", "ocean", "terminal", "newsprint", "candy"]
+THEMES = ["classic", "loveydovey", "midnight", "forest", "ocean", "terminal", "newsprint", "candy", "sunset"]
 ZURICH = ZoneInfo("Europe/Zurich")
 YEAR = 365 * 24 * 3600
 store.init()

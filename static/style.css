@@ -29,9 +29,11 @@ fieldset{border:1px solid var(--muted);border-radius:var(--radius);margin:1rem 0
 .msg.bad{color:var(--bad)}
 .word{font-size:1.8rem;min-height:2.6rem;margin:.2rem 0;letter-spacing:.1em;text-transform:uppercase;border-bottom:2px solid var(--accent);min-width:12rem;text-align:center;border-radius:var(--radius) var(--radius) 0 0}
 .hive{display:grid;grid-template-columns:repeat(6,calc(var(--w)/2));grid-auto-rows:calc(var(--w)*.2887);margin:.5rem 0}
-.hive button{grid-column:span 2;grid-row:span 4;width:var(--w);height:calc(var(--w)*1.1547);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--tile);color:var(--tile-fg);font-size:1.8rem;font-weight:700;padding:0;border-radius:0;transform:scale(.92);text-transform:uppercase;justify-content:center}
+.hive button{grid-column:span 2;grid-row:span 4;width:var(--w);height:calc(var(--w)*1.1547);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:var(--edge,var(--tile));color:var(--tile-fg);font-size:1.8rem;font-weight:700;padding:0;border-radius:0;transform:scale(.92);text-transform:uppercase;justify-content:center;position:relative;isolation:isolate}
+.hive button::before{content:"";position:absolute;inset:1px;clip-path:inherit;background:var(--tile);z-index:-1}
 .hive button:active{transform:scale(.84)}
-.hive .centre{background:var(--centre);color:var(--centre-fg)}
+.hive .centre{color:var(--centre-fg)}
+.hive .centre::before{background:var(--centre)}
 .hive button:nth-child(1){grid-area:4/3/span 4/span 2}
 .hive button:nth-child(2){grid-area:1/2/span 4/span 2}
 .hive button:nth-child(3){grid-area:1/4/span 4/span 2}
@@ -56,3 +58,22 @@ th,td{text-align:left;padding:.4rem .5rem;border-bottom:1px solid var(--bg);whit
 .admin{overflow-x:auto}
 .filters{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-bottom:.8rem}
 .filters input{width:auto;max-width:9rem}
+[data-theme=loveydovey]{--bg:#fff0f5;--fg:#6b0f2b;--muted:#b0456c;--tile:#ffc2d4;--tile-fg:#6b0f2b;--centre:#ff5c8a;--centre-fg:#ffffff;--accent:#d6336c;--card:#ffe0ea;--radius:14px}
+[data-theme=loveydovey] h2,[data-theme=loveydovey] h3,[data-theme=loveydovey] .brand{font-family:"Segoe Script","Brush Script MT","Apple Chancery",cursive}
+[data-theme=loveydovey] #found li::before,[data-theme=loveydovey] .words li::before{content:"\2665  ";color:var(--accent)}
+[data-theme=loveydovey] #score::after{content:", so sweet"}
+[data-theme=loveydovey] #enter{font-size:0}
+[data-theme=loveydovey] #enter::after{content:"send";font-size:1rem}
+[data-theme=midnight]{--bg:#0f172a;--fg:#e2e8f0;--muted:#94a3b8;--tile:#1e293b;--tile-fg:#e2e8f0;--centre:#facc15;--centre-fg:#0f172a;--accent:#38bdf8;--card:#1e293b}
+[data-theme=forest]{--bg:#0b3d2e;--fg:#f1f5e9;--muted:#a7c4a0;--tile:#2f6b4f;--tile-fg:#f1f5e9;--centre:#d9a404;--centre-fg:#0b3d2e;--accent:#9ccc65;--card:#14523d}
+[data-theme=ocean]{--bg:#e0f2fe;--fg:#0c4a6e;--muted:#0369a1;--tile:#7dd3fc;--tile-fg:#0c4a6e;--centre:#fbbf24;--centre-fg:#0c4a6e;--accent:#0284c7;--card:#bae6fd}
+[data-theme=terminal]{--bg:#000000;--fg:#33ff33;--muted:#1f9e1f;--tile:#002200;--edge:#33ff33;--tile-fg:#33ff33;--centre:#ffff00;--centre-fg:#000000;--accent:#33ff33;--card:#001100;--font:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;--radius:0}
+[data-theme=terminal] button,[data-theme=terminal] .button,[data-theme=terminal] #score{text-transform:uppercase}
+[data-theme=terminal] .word::after{content:"_";animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+[data-theme=newsprint]{--bg:#f4ecd8;--fg:#222222;--muted:#6b5f4a;--tile:#d6ccb2;--tile-fg:#222222;--centre:#e8c547;--centre-fg:#222222;--accent:#8b0000;--card:#ebe2c9;--font:Georgia,"Times New Roman",serif;--radius:2px}
+[data-theme=newsprint] .code{font-size:1.5rem;font-weight:700;color:var(--fg);letter-spacing:.35em;border-top:3px double var(--fg);border-bottom:1px solid var(--fg);padding:.2rem 1rem;text-transform:uppercase}
+[data-theme=newsprint] #score{font-variant:small-caps}
+[data-theme=candy]{--bg:#fdf4ff;--fg:#581c87;--muted:#86198f;--tile:#c4b5fd;--tile-fg:#581c87;--centre:#fde047;--centre-fg:#581c87;--accent:#a21caf;--card:#f3e8ff;--font:"Trebuchet MS",system-ui,sans-serif;--radius:20px}
+[data-theme=candy] .hive button:nth-child(even)::before{background:#f5d0fe}
+[data-theme=sunset]{--bg:#fff1e6;--fg:#431407;--muted:#9a3412;--tile:#fdba74;--tile-fg:#431407;--centre:#fde047;--centre-fg:#431407;--accent:#ea580c;--card:#ffe4cc;--radius:10px}
