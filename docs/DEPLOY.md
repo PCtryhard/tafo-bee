@@ -23,7 +23,7 @@ Files the repo must contain for this: `Dockerfile`, `compose.yaml` (app + caddy,
 
 ## option B, a PaaS
 
-Fly.io or Render, both run the Dockerfile as is. Attach a persistent volume mounted at `/app/data` so the sqlite file survives deploys, set the env vars in their dashboard, add `bee.tafo.ch` as a custom domain and create the CNAME they give you at the registrar. Slightly more per month than a VPS, no server to maintain.
+Fly.io or Render, both run the Dockerfile as is. Attach a persistent volume mounted at `/data` (the image sets `DB_PATH=/data/bee.db`) so the sqlite file survives deploys, set the env vars in their dashboard, add `bee.tafo.ch` as a custom domain and create the CNAME they give you at the registrar. Slightly more per month than a VPS, no server to maintain.
 
 ## option C, the boss already has a server
 
