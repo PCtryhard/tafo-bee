@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}bee {{ gm.code }}{% endblock %}
 {% macro prism(cls, x, y, r, h, z=0, text="", attrs="") -%}
-<div class="p {{ cls }}" style="--x:{{ x }}px;--y:{{ y }}px;--R:{{ r }}px;--h:{{ h }}px;--z:{{ z }}px" {{ attrs|safe }}><b><span>{{ text }}</span></b>{% for i in range(6) %}<i style="--i:{{ i }}"></i>{% endfor %}</div>
+<div class="p {{ cls }}" style="--x:{{ x }}px;--y:{{ y }}px;--R:{{ r }}px;--h:{{ h }}px;--z:{{ z }}px" {{ attrs|safe }}><b><svg viewBox="0 0 87 100"><polygon points="43.5,0 87,25 87,75 43.5,100 0,75 0,25"/></svg><span>{{ text }}</span></b>{% for i in range(6) %}<i style="--i:{{ i }}"></i>{% endfor %}</div>
 {%- endmacro %}
 {% macro tree(x, y) -%}
 {{ prism("trunk", x, y, 7, 26) }}{{ prism("leaf", x, y, 30, 16, 22) }}{{ prism("leaf light", x, y, 19, 14, 38) }}
@@ -19,13 +19,13 @@
 <div class="stage">
 <div class="scene"><div id="world" class="world">
   <div class="ground"></div>
-  <div class="lake"></div><div class="lake inner"></div>
-  {% set spots = [(300, 220), (226, 220), (374, 220), (263, 156), (337, 156), (263, 284), (337, 284)] %}
-  {% for l in gm.code %}{{ prism("block" + (" centre" if loop.first else ""), spots[loop.index0][0], spots[loop.index0][1], 40, 34 if loop.first else 24, 0, l, 'data-letter="' + l + '" data-kind="letter"') }}{% endfor %}
+  <svg class="lake" viewBox="0 0 160 120"><polygon points="29,36 72,10 128,17 160,50 147,98 96,120 40,110 6,78"/><polygon class="inner" points="45,44 75,26 113,31 134,53 126,86 91,101 53,94 30,72"/></svg>
+  {% set spots = [(300, 220), (222, 220), (378, 220), (261, 153), (339, 153), (261, 287), (339, 287)] %}
+  {% for l in gm.code %}{{ prism("block" + (" centre" if loop.first else ""), spots[loop.index0][0], spots[loop.index0][1], 40, 30 if loop.first else 24, 0, l, 'data-letter="' + l + '" data-kind="letter"') }}{% endfor %}
   {{ prism("block enter", 470, 220, 40, 24, 0, "ok", 'data-kind="enter"') }}
   {{ prism("block delete", 130, 220, 40, 24, 0, "del", 'data-kind="delete"') }}
-  {{ tree(60, 62) }}{{ tree(540, 70) }}{{ tree(70, 372) }}{{ tree(300, 42) }}{{ tree(-140, 300) }}{{ tree(730, 390) }}{{ tree(-70, -60) }}{{ tree(690, -40) }}{{ tree(320, 540) }}{{ tree(-210, 540) }}{{ tree(820, 560) }}{{ tree(-330, 120) }}{{ tree(930, 200) }}
-  {{ prism("bush", 150, 40, 14, 10) }}{{ prism("bush", 470, 44, 12, 9) }}{{ prism("bush", 36, 230, 15, 11) }}{{ prism("bush", 160, 396, 13, 9) }}{{ prism("bush", 560, 200, 12, 8) }}{{ prism("bush", -40, 430, 14, 9) }}{{ prism("bush", 650, 480, 12, 8) }}{{ prism("bush", 120, 530, 13, 9) }}{{ prism("bush", 500, -70, 12, 8) }}{{ prism("bush", -180, 20, 15, 10) }}{{ prism("bush", 780, 100, 13, 9) }}
+  {{ tree(60, 62) }}{{ tree(540, 70) }}{{ tree(70, 372) }}{{ tree(300, 42) }}{{ tree(-110, 300) }}{{ tree(700, 410) }}{{ tree(-70, -50) }}{{ tree(690, -40) }}{{ tree(330, 460) }}{{ tree(-100, 450) }}{{ tree(720, 140) }}{{ tree(-120, 120) }}
+  {{ prism("bush", 150, 40, 14, 10) }}{{ prism("bush", 470, 44, 12, 9) }}{{ prism("bush", 36, 230, 15, 11) }}{{ prism("bush", 160, 396, 13, 9) }}{{ prism("bush", 560, 200, 12, 8) }}{{ prism("bush", -40, 430, 14, 9) }}{{ prism("bush", 620, 470, 12, 8) }}{{ prism("bush", 120, 470, 13, 9) }}{{ prism("bush", 500, -60, 12, 8) }}{{ prism("bush", -130, 20, 15, 10) }}{{ prism("bush", 740, 260, 13, 9) }}
   {% for n in [1, 2] %}<div class="fox f{{ n }}">{{ prism("fur", 0, 0, 9, 10) }}{{ prism("fur", 12, 0, 6, 7, 5) }}{{ prism("tail", -12, 0, 5, 5, 3) }}</div>{% endfor %}
   <div id="shadow" class="shadow" style="--x:300px;--y:340px;--z:0px"></div>
   {{ prism("player", 300, 340, 15, 12, 0, "", 'id="player"') }}

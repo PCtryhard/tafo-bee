@@ -10,8 +10,7 @@
   <p id="msg" hidden></p>
   <p id="score" data-total="{{ gm.total }}" data-max="{{ gm.max }}">{{ gm.words|length }} / {{ gm.total }} words, {{ gm.score }} points, {{ gm.rank }}</p>
   <div class="bar"><i id="fill" style="width:{{ (gm.pct * 100)|round|int }}%"></i></div>
-  <p class="controls"><button type="button" id="shuffle">shuffle</button></p>
-  <form id="finish" method="post" action="/finish" class="finish"><input type="hidden" name="game" value="{{ gm.id }}"><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span> <button>finish</button></form>
+  <div class="row"><button type="button" id="shuffle">shuffle</button><form id="finish" method="post" action="/finish" class="finish"><input type="hidden" name="game" value="{{ gm.id }}"><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span> <button>finish</button></form></div>
 </section>
 <section class="found card">
   <h2>found</h2>
@@ -22,40 +21,39 @@
 const $ = id => document.getElementById(id), game = document.querySelector('.game'), gameId = game.dataset.game, code = game.dataset.code;
 const cv = $('tome'), ctx = cv.getContext('2d'), word = $('word'), msg = $('msg'), score = $('score'), found = $('found'), fill = $('fill'), timer = $('timer');
 const CFG = {hp: 5, speed: 70, rest: [6, 12], attack: [6, 12], telegraph: 1, maxBullets: 4, inv: 1, pages: [1.2, 28], ink: [0.9, 30, 45], letters: [1.5, 45]};
-const BOX = {x: 60, y: 66, w: 200, h: 136}, COL = {'#': '#ffffff', '+': '#8a8a8a', y: '#ffd93b', r: '#ff3b3b'};
+const BOX = {x: 60, y: 74, w: 200, h: 130}, COL = {'#': '#ffffff', '+': '#8a8a8a', y: '#ffd93b', r: '#ff3b3b'};
 const TAUNT = {rest: 'it is thinking.', telegraph: 'the tome opens...', pages: 'pages fly.', ink: 'ink rains.', letters: 'stray letters.'};
 // sprites: . clear, # white, + grey, y yellow, r red, decoded once into small canvases
+const text = (s, x, y, align, colour) => { ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); };
 const sprite = (rows, s = 1) => {
   const c = document.createElement('canvas'), g = c.getContext('2d');
   c.width = rows[0].length * s; c.height = rows.length * s;
   rows.forEach((row, y) => [...row].forEach((ch, x) => { if (COL[ch]) { g.fillStyle = COL[ch]; g.fillRect(x * s, y * s, s, s); } }));
   return c;
 };
-const BOOK = ['................................', '..######################........', '.#++++++++++++++++++++++#.......', '.#++++++++++++++++++++++##......',
-  '.#+#################++++#+#.....', '.#+#...............#++++#+#.....', '.#+#...............#++++#+#.....', '.#+#..###.....###..#++++#+#.....',
-  '.#+#..###.....###..#++++#+#.....', '.#+#..#.#.....#.#..#++++#+#.....', '.#+#...............#++++#+#.....', '.#+#...............#++++#+#.....',
-  '.#+#....#######....#++++#+#.....', '.#+#...##.....##...#++++#+#.....', '.#+#...............#++++#+#.....', '.#+#...............#++++#+#.....',
-  '.#+#################++++#+#.....', '.#++++++++++++++++++++++#+#.....', '.#++++++++++++++++++++++#+#.....', '.#++++++++++++++++++++++##......',
-  '..######################.#......', '..#######################.......', '................................', '................................'];
-// face rows 7, 8, 9 (eyes) and 12, 13 (mouth), 13 columns from column 5
-const FACE = {idle: ['..###.....###', '..###.....###', '..#.#.....#.#', '....#######..', '...##.....##.'],
-  angry: ['.##.......##.', '...##...##...', '..#.#...#.#..', '..#########..', '..#.......#..'],
-  flinch: ['..#.#...#.#..', '...#.....#...', '..#.#...#.#..', '.....#####...', '.....#...#...']};
-const book = {};
-for (const [name, rows] of Object.entries(FACE)) {
-  const b = BOOK.slice();
-  [7, 8, 9, 12, 13].forEach((r, i) => b[r] = b[r].slice(0, 5) + rows[i] + b[r].slice(18));
-  book[name] = sprite(b, 2);
-}
+// an open book, 48 by 28, drawn at double size: two white pages rising to a grey spine, a grey cover below, the face is drawn on top
+const OPEN = Array.from({length: 28}, (_, r) => {
+  if (r >= 23) return r === 27 ? `.${'#'.repeat(46)}.` : `#${'+'.repeat(46)}#`;
+  const n = Math.min(44, 4 + 6 * r), side = '.'.repeat((48 - n) / 2), row = `${side}${'#'.repeat(n)}${side}`;
+  return r ? `${row.slice(0, 23)}++${row.slice(25)}` : row;
+});
+const book = sprite(OPEN, 2), BX = 112, BY = 13;
+const rect = (x, y, w, h, colour = '#000') => { ctx.fillStyle = colour; ctx.fillRect(BX + x, BY + y, w, h); };
+const drawFace = name => {
+  if (name === 'flinch') { text('x', BX + 24, BY + 19, 'center', '#000'); text('x', BX + 72, BY + 19, 'center', '#000'); rect(44, 36, 8, 6); rect(46, 38, 4, 2, '#fff'); return; }
+  rect(20, 20, 8, 6); rect(68, 20, 8, 6);
+  if (name === 'angry') { [0, 1, 2].forEach(i => { rect(16 + i * 4, 12 + i * 2, 4, 2); rect(76 - i * 4, 12 + i * 2, 4, 2); }); rect(36, 34, 24, 10); rect(38, 36, 20, 2, '#fff'); return; }
+  rect(38, 36, 20, 2); rect(34, 38, 4, 2); rect(58, 38, 4, 2); rect(32, 40, 2, 2); rect(62, 40, 2, 2);
+};
 const PAGE = sprite(['########', '#......#', '#.####.#', '#......#', '#.####.#', '#......#', '#.####.#', '#......#', '#......#', '########']);
 const INK = sprite(['..#..', '.###.', '#####', '.###.', '..#..']);
 const HERO = [sprite(['....y....', '..yyyyy..', '.yyyyyyy.', 'yyyyyyyyy', 'yyyy#yyyy', 'yyyyyyyyy', '.yyyyyyy.', '..yyyyy..', '....y....']),
   sprite(['....y....', '..yyyyy..', '.yy#yyyy.', 'yyyyyyyyy', 'yyyyyyyyy', 'yyyyyyyyy', '.yyyyyyy.', '..yyyyy..', '....y....'])];
-const ring = [0, 60, 120, 180, 240, 300].map(a => [160 + Math.round(32 * Math.cos(a * Math.PI / 180)), 134 + Math.round(32 * Math.sin(a * Math.PI / 180))]);
-const tiles = [{x: 160, y: 134, letter: code[0], centre: true}, ...ring.map(([x, y], i) => ({x, y, letter: code[i + 1]})),
-  {x: 248, y: 134, kind: 'enter', label: '[ok]'}, {x: 72, y: 134, kind: 'delete', label: '[del]'}];
+const ring = [0, 60, 120, 180, 240, 300].map(a => [160 + Math.round(32 * Math.cos(a * Math.PI / 180)), 139 + Math.round(32 * Math.sin(a * Math.PI / 180))]);
+const tiles = [{x: 160, y: 139, letter: code[0], centre: true}, ...ring.map(([x, y], i) => ({x, y, letter: code[i + 1]})),
+  {x: 248, y: 139, kind: 'enter', label: '[ok]'}, {x: 72, y: 139, kind: 'delete', label: '[del]'}];
 const outer = tiles.slice(1, 7), STRAY = [...'abcdefghijklmnopqrstuvwxyz'].filter(l => !code.includes(l));
-const held = {}, S = {hp: CFG.hp, x: 160, y: 188, inv: 0, flash: 0, face: 'idle', faceT: 0, phase: 'rest', left: 0, pattern: 'pages', spawn: 0, extra: 0, over: false, taunt: 'the tome glares at you.', t: 0, side: 1, inkX: -99};
+const held = {}, S = {hp: CFG.hp, x: 160, y: 192, inv: 0, flash: 0, face: 'idle', faceT: 0, phase: 'rest', left: 0, pattern: 'pages', spawn: 0, extra: 0, over: false, taunt: 'the tome glares at you.', t: 0, side: 1, inkX: -99};
 let bullets = [], last = 0, msgOk = true;
 const rnd = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const pad = n => String(n).padStart(2, '0');
@@ -158,16 +156,15 @@ const update = dt => {
   S.flash = 0.3;
   if (S.hp <= 0) die();
 };
-const text = (s, x, y, align, colour) => { ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); };
 const draw = () => {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, 320, 240);
   ctx.font = 'bold 8px monospace';
   ctx.textBaseline = 'top';
   text(S.taunt, 160, 3, 'center', '#fff');
-  if (S.face === 'slam') { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(129, 51, 62, 10); ctx.fillStyle = '#8a8a8a'; ctx.fillRect(131, 53, 58, 6); }
-  else ctx.drawImage(book[S.face], 128, 13 + (S.face === 'idle' && Math.floor(S.t * 1.6) % 2 ? 1 : 0));
-  if (S.phase === 'telegraph' && Math.floor(S.t * 8) % 2) { ctx.strokeStyle = '#ffd93b'; ctx.lineWidth = 1; ctx.strokeRect(126.5, 11.5, 68, 52); }
+  if (S.face === 'slam') { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(113, 57, 94, 12); ctx.fillStyle = '#8a8a8a'; ctx.fillRect(115, 59, 90, 8); }
+  else { ctx.drawImage(book, BX, BY + (S.face === 'idle' && Math.floor(S.t * 1.6) % 2 ? 1 : 0)); drawFace(S.face); }
+  if (S.phase === 'telegraph' && Math.floor(S.t * 8) % 2) { ctx.strokeStyle = '#ffd93b'; ctx.lineWidth = 1; ctx.strokeRect(108.5, 10.5, 104, 62); }
   ctx.lineWidth = 2;
   ctx.strokeStyle = S.flash > 0 ? '#ff3b3b' : '#fff';
   ctx.strokeRect(BOX.x - 1, BOX.y - 1, BOX.w + 2, BOX.h + 2);

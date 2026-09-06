@@ -8,7 +8,8 @@ button,.button{color:#000}
 .hud .bar{max-width:22rem}
 .bar{background:#333}
 .hint{text-align:center;margin:0;font-size:.85rem}
-.controls{justify-content:center;margin:.2rem 0}
+.row{display:flex;gap:1rem;align-items:center;justify-content:center;flex-wrap:wrap;margin:.3rem 0}
+.row form{display:flex;align-items:center;gap:.6rem;margin:0}
 .found{width:100%;max-width:640px}
 .pangram{color:#ffd93b}
 .touch{display:none;width:100%;max-width:640px;justify-content:space-between;align-items:center;touch-action:none;user-select:none}
