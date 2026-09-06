@@ -1,0 +1,31 @@
+body{--bg:#fff0f5;--fg:#6b0f2b;--muted:#b0456c;--tile:#ffc2d4;--tile-fg:#6b0f2b;--centre:#ff5c8a;--centre-fg:#ffffff;--accent:#d6336c;--card:#ffe0ea;--radius:14px;--good:#d6336c;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M24 40c-7-6-18-13-18-23 0-6 4-10 9-10 4 0 7 2 9 5 2-3 5-5 9-5 5 0 9 4 9 10 0 10-11 17-18 23z' fill='%23ffd6e2' opacity='.45'/%3E%3C/svg%3E")}
+h2,h3,.brand{font-family:"Segoe Script","Brush Script MT","Apple Chancery",cursive}
+button,.button,.themes summary{border-radius:999px}
+input{border-radius:var(--radius)}
+.word{border-bottom-color:var(--centre)}
+.hive{display:block;position:relative;width:336px;height:290px;margin:.5rem auto}
+.hive button{position:absolute;width:88px;height:88px;transform:none;padding-top:6px;background:var(--tile);color:var(--tile-fg);
+  clip-path:path("M44 82 C30 70 4 52 4 30 C4 16 15 6 27 6 C35 6 41 10 44 17 C47 10 53 6 61 6 C73 6 84 16 84 30 C84 52 58 70 44 82 Z")}
+.hive button:hover,.hive button:focus-visible{animation:beat .6s ease-in-out infinite}
+.hive button:active{transform:scale(.9)}
+.hive .centre{background:var(--centre);color:var(--centre-fg)}
+.hive button:nth-child(1){left:124px;top:120px}
+.hive button:nth-child(2){left:59px;top:26px}
+.hive button:nth-child(3){left:189px;top:26px}
+.hive button:nth-child(4){left:4px;top:106px}
+.hive button:nth-child(5){left:244px;top:106px}
+.hive button:nth-child(6){left:64px;top:191px}
+.hive button:nth-child(7){left:184px;top:191px}
+@keyframes beat{50%{transform:scale(1.08)}}
+#enter{font-size:0}
+#enter::after{content:"send";font-size:1rem}
+#score::after{content:", so sweet"}
+#found li::before,.words li::before{content:"\2665  ";color:var(--accent)}
+.bar i{background:linear-gradient(90deg,#ffb3c6,#ff5c8a,#d6336c)}
+.msg{position:relative}
+.msg.ok::before,.msg.ok::after{content:"\2665";position:absolute;bottom:0;color:var(--centre);pointer-events:none;animation:float 1.4s ease-out forwards}
+.msg.ok::before{left:30%}
+.msg.ok::after{left:62%;animation-delay:.2s;font-size:.8em}
+@keyframes float{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-3rem) rotate(-12deg)}}
+@media (prefers-reduced-motion:reduce){.hive button,.msg.ok::before,.msg.ok::after{animation:none}}
