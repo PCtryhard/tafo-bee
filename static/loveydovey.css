@@ -4,19 +4,23 @@ h2,h3,.brand{font-family:"Segoe Script","Brush Script MT","Apple Chancery",cursi
 button,.button,.themes summary{border-radius:999px}
 input{border-radius:var(--radius)}
 .word{border-bottom-color:var(--centre)}
-.hive{display:block;position:relative;width:336px;height:290px;margin:.5rem auto}
-.hive button{position:absolute;width:88px;height:88px;transform:none;padding-top:6px;background:var(--tile);color:var(--tile-fg);
-  clip-path:path("M44 82 C30 70 4 52 4 30 C4 16 15 6 27 6 C35 6 41 10 44 17 C47 10 53 6 61 6 C73 6 84 16 84 30 C84 52 58 70 44 82 Z")}
-.hive button:hover,.hive button:focus-visible{animation:beat .6s ease-in-out infinite}
-.hive button:active{transform:scale(.9)}
-.hive .centre{background:var(--centre);color:var(--centre-fg)}
-.hive button:nth-child(1){left:124px;top:120px}
-.hive button:nth-child(2){left:59px;top:26px}
-.hive button:nth-child(3){left:189px;top:26px}
-.hive button:nth-child(4){left:4px;top:106px}
-.hive button:nth-child(5){left:244px;top:106px}
-.hive button:nth-child(6){left:64px;top:191px}
-.hive button:nth-child(7){left:184px;top:191px}
+/* seven pixel hearts laid out as one big heart: two lobes, two wide sides, the centre, two converging at the tip */
+.hive{display:block;position:relative;width:322px;height:244px;margin:.5rem auto}
+.hive button{position:absolute;width:72px;height:64px;padding:2px 0 0;transform:none;background:none;clip-path:none;color:var(--tile-fg);font-size:1.5rem;isolation:isolate;transition:transform .15s;--face:var(--tile);--side:#e48aa4;--hi:#ffe3ea}
+.hive button::before,.hive button::after{content:"";position:absolute;inset:0;z-index:-1;
+  clip-path:polygon(11.1% 0,33.3% 0,33.3% 12.5%,44.4% 12.5%,44.4% 25%,55.6% 25%,55.6% 12.5%,66.7% 12.5%,66.7% 0,88.9% 0,88.9% 12.5%,100% 12.5%,100% 50%,88.9% 50%,88.9% 62.5%,77.8% 62.5%,77.8% 75%,66.7% 75%,66.7% 87.5%,55.6% 87.5%,55.6% 100%,44.4% 100%,44.4% 87.5%,33.3% 87.5%,33.3% 75%,22.2% 75%,22.2% 62.5%,11.1% 62.5%,11.1% 50%,0 50%,0 12.5%,11.1% 12.5%)}
+.hive button::before{background:linear-gradient(var(--hi),var(--hi)) 16% 24%/11.2% 12.5% no-repeat,var(--face)}
+.hive button::after{background:var(--side);transform:translate(6px,6px);z-index:-2}
+.hive .centre{width:90px;height:80px;font-size:1.9rem;background:none;color:var(--centre-fg);--face:var(--centre);--side:#c2325f;--hi:#ff94b3}
+.hive button:hover{animation:beat .6s ease-in-out infinite}
+.hive button:active{animation:none;transform:scale(1.18);transition-duration:.05s}
+.hive button:nth-child(1){left:116px;top:72px}
+.hive button:nth-child(2){left:65px;top:0}
+.hive button:nth-child(3){left:185px;top:0}
+.hive button:nth-child(4){left:0;top:75px}
+.hive button:nth-child(5){left:250px;top:75px}
+.hive button:nth-child(6){left:85px;top:170px}
+.hive button:nth-child(7){left:165px;top:170px}
 @keyframes beat{50%{transform:scale(1.08)}}
 #enter{font-size:0}
 #enter::after{content:"send";font-size:1rem}
