@@ -14,7 +14,7 @@ const size = () => {
   H = Math.max(150, Math.round(W * innerHeight / innerWidth));
   cv.width = W; cv.height = H;
   horizon = Math.round(H * 0.56);
-  const field = H - horizon, k = H / 180;
+  const field = H - horizon, k = Math.min(1.5, H / 180);
   seed = 11;
   patches = Array.from({length: 14}, () => [rnd() * W, horizon + 4 + rnd() * field * 0.45, 14 + rnd() * 40, 2 + rnd() * 4]);
   blades = [];
@@ -42,7 +42,8 @@ const draw = t => {
   for (const b of blades) {
     const bend = Math.min(b.h * 0.95, wind(b.x + b.p * 9, t) * b.h * 0.34);
     sc.fillStyle = b.c;
-    for (let k = 0; k < b.h; k++) sc.fillRect(Math.round(b.x + bend * (k / b.h) ** 1.7), Math.round(b.y - k), b.wide && k < b.h * 0.55 ? 2 : 1, 1);
+    const step = b.h > 18 ? 2 : 1;
+    for (let k = 0; k < b.h; k += step) sc.fillRect(Math.round(b.x + bend * (k / b.h) ** 1.7), Math.round(b.y - k) - step + 1, b.wide && k < b.h * 0.55 ? 2 : 1, step);
     if (b.wide) { sc.fillStyle = '#c8e070'; sc.fillRect(Math.round(b.x + bend), Math.round(b.y - b.h), 1, 1); }
   }
 };
