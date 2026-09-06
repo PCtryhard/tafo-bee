@@ -7,7 +7,7 @@ import game, store
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
-THEMES = ["classic", "loveydovey", "midnight", "forest", "ocean", "terminal", "newsprint", "candy", "sunset"]
+THEMES = ["classic", "world", "tome", "terminal", "loveydovey"]
 ZURICH = ZoneInfo("Europe/Zurich")
 YEAR = 365 * 24 * 3600
 daily = lru_cache(game.daily_code)
@@ -64,7 +64,7 @@ def new() -> Response | str:
 def play(code: str) -> str | tuple[str, int]:
     if game.canon(code, code[:1]) != code or not game.words_for(code): return "no such puzzle", 404
     gm = store.open_game(session(), code) or store.get(store.new_game(session(), cookie("name") or "anon", code, theme()))
-    return render_template("play.html", gm=enrich(gm))
+    return render_template([f"play_{theme()}.html", "play.html"], gm=enrich(gm))
 
 @app.post("/guess")
 def guess() -> Response:

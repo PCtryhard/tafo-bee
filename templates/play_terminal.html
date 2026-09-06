@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}bee {{ gm.code }}{% endblock %}
+{% block body %}
+<div class="game" data-game="{{ gm.id }}">
+<section class="board">
+  <p class="code">{{ gm.code }}</p>
+  <p id="msg" class="msg">&nbsp;</p>
+  <p id="word" class="word"></p>
+  <div class="hive">{% for l in gm.code %}<button type="button" data-letter="{{ l }}"{% if loop.first %} class="centre"{% endif %}>{{ l }}</button>{% endfor %}</div>
+  <p class="controls"><button type="button" id="del">delete</button> <button type="button" id="shuffle">shuffle</button> <button type="button" id="enter">enter</button></p>
+  <p id="score" data-total="{{ gm.total }}" data-max="{{ gm.max }}">{{ gm.words|length }} / {{ gm.total }} words, {{ gm.score }} points, {{ gm.rank }}</p>
+  <div class="bar"><i id="fill" style="width:{{ (gm.pct * 100)|round|int }}%"></i></div>
+  <form method="post" action="/finish" class="finish"><input type="hidden" name="game" value="{{ gm.id }}"><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span> <button>finish</button></form>
+</section>
+<section class="found card">
+  <h2>found</h2>
+  <ul id="found">{% for w in gm.words %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% endfor %}</ul>
+</section>
+</div>
+<script>
+const $ = id => document.getElementById(id), hive = document.querySelector('.hive');
+const gameId = document.querySelector('.game').dataset.game;
+const outer = [...hive.querySelectorAll('button:not(.centre)')];
+const letters = () => [...hive.querySelectorAll('button')].map(b => b.dataset.letter);
+const word = $('word'), msg = $('msg'), score = $('score'), found = $('found'), fill = $('fill'), timer = $('timer');
+const add = l => { if (letters().includes(l)) word.textContent += l; };
+const del = () => { word.textContent = word.textContent.slice(0, -1); };
+const flash = (text, ok) => { msg.textContent = text; msg.className = ok ? 'msg ok' : 'msg bad'; };
+const pad = n => String(n).padStart(2, '0');
+const tick = () => {
+  const s = Math.max(0, Math.floor((Date.now() - +timer.dataset.start) / 1000));
+  timer.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+};
+async function submit() {
+  const w = word.textContent;
+  if (!w) return;
+  const r = await fetch('/guess', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({game: gameId, word: w})});
+  const d = await r.json();
+  flash(d.msg, d.ok);
+  word.textContent = '';
+  if (!d.ok) return;
+  score.textContent = `${d.found.length} / ${score.dataset.total} words, ${d.score} points, ${d.rank}`;
+  fill.style.width = `${Math.round(100 * d.score / score.dataset.max)}%`;
+  const li = document.createElement('li');
+  li.textContent = w;
+  if (d.msg === 'pangram!') li.className = 'pangram';
+  found.insertBefore(li, [...found.children].find(x => x.textContent > w) || null);
+  if (d.done) location.href = `/done/${gameId}`;
+}
+hive.addEventListener('click', e => { if (e.target.dataset.letter) { add(e.target.dataset.letter); e.target.blur(); } });
+$('del').onclick = del;
+$('enter').onclick = submit;
+$('shuffle').onclick = () => {
+  const ls = outer.map(b => b.dataset.letter).sort(() => Math.random() - 0.5);
+  outer.forEach((b, i) => { b.dataset.letter = ls[i]; b.textContent = ls[i]; });
+};
+document.addEventListener('keydown', e => {
+  if (e.target.closest?.('form, details') || e.ctrlKey || e.metaKey) return;
+  if (e.key === 'Backspace') del(); else if (e.key === 'Enter') submit(); else if (/^[a-z]$/i.test(e.key)) add(e.key.toLowerCase()); else return;
+  e.preventDefault();
+});
+tick();
+setInterval(tick, 1000);
+</script>
+{% endblock %}

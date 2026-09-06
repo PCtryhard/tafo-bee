@@ -7,8 +7,8 @@ A spelling bee web game (hexagon of 7 letters, mandatory centre letter) to be ho
 
 ## stack, fixed
 - Python 3.12, Flask, Jinja2, sqlite3 (stdlib), gunicorn for serving. Nothing else at runtime. pytest for tests only.
-- No JS frameworks, no build step, no npm, no CDN assets, no web fonts. One small vanilla `<script>` block in `templates/play.html`, hard cap 60 lines.
-- One CSS file, `static/style.css`, hard cap 220 lines including all 8 themes.
+- No JS frameworks, no build step, no npm, no CDN assets, no web fonts. Vanilla inline `<script>` blocks only, one per mode template, capped in the budgets below.
+- Themes are modes. A mode owns its own play template `templates/play_<mode>.html`, its own stylesheet `static/<mode>.css` and, if it needs one, its own inline script. A new theme must change layout or mechanics; a palette swap is not a theme. `classic` is the default and the fallback.
 - Dictionary is the plain text file `data/words.txt` (one lowercase word per line, already 4+ letters). Load it, never fetch anything at runtime.
 
 ## layout, fixed
@@ -16,8 +16,10 @@ A spelling bee web game (hexagon of 7 letters, mandatory centre letter) to be ho
 app.py            routes, cookies, admin auth
 game.py           puzzle codes, generation, validation, scoring, ranks
 store.py          sqlite schema + queries
-templates/        base.html index.html play.html done.html admin.html
-static/style.css
+templates/        base.html index.html play.html done.html admin.html stats.html
+templates/        play_world.html play_tome.html play_terminal.html play_loveydovey.html
+static/style.css  shared base and the classic board
+static/           world.css tome.css terminal.css loveydovey.css
 data/words.txt    dictionary (do not edit by hand)
 data/exclude.txt  optional, words to remove at load
 tools/build_dict.sh
@@ -29,7 +31,22 @@ Do not add files outside this list without a reason written in README "decisions
 
 ## code style, non-negotiable
 - Compact. Prefer comprehensions, dict lookups, `dataclass`, early returns, `functools.lru_cache`. No classes where a function does. No ORM, no blueprints, no config classes.
-- Budgets: `app.py` <= 140 lines, `game.py` <= 90, `store.py` <= 70. If you exceed one, simplify, do not split into more files.
+- Budgets, in lines. If you exceed one, simplify, do not split into more files.
+
+| file | cap |
+|---|---|
+| `app.py` | 150 |
+| `game.py` | 90 |
+| `store.py` | 70 |
+| `static/style.css` | 90 |
+| `templates/play.html` inline script | 60 |
+| `templates/play_world.html` script | 260 |
+| `static/world.css` | 130 |
+| `templates/play_tome.html` script | 320 (sprites as string arrays count) |
+| `static/tome.css` | 50 |
+| `templates/play_terminal.html` script | 150 |
+| `static/terminal.css` | 90 |
+| `static/loveydovey.css` | 90, no script |
 - Comments: fully lowercase, very brief, only where the code is not self explanatory. No docstrings longer than one line. No section banners.
 - Names: short but real words (`words`, `centre`, `code`, `found`). British spelling in identifiers and copy (`centre`, `colour`).
 - Type hints on function signatures, nowhere else.
