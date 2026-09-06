@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}bee {{ gm.code }}{% endblock %}
+{% block body %}
+<div class="game" data-game="{{ gm.id }}" data-code="{{ gm.code }}">
+<canvas id="tome" width="320" height="240"></canvas>
+<div class="touch"><div class="pad"><button data-k="up">&#9650;</button><button data-k="left">&#9664;</button><button data-k="right">&#9654;</button><button data-k="down">&#9660;</button></div><button class="select">select</button></div>
+<p class="hint muted">arrows / wasd move, z or space selects the tile you stand on. dodge what the tome throws.</p>
+<section class="hud">
+  <p id="word" hidden></p>
+  <p id="msg" hidden></p>
+  <p id="score" data-total="{{ gm.total }}" data-max="{{ gm.max }}">{{ gm.words|length }} / {{ gm.total }} words, {{ gm.score }} points, {{ gm.rank }}</p>
+  <div class="bar"><i id="fill" style="width:{{ (gm.pct * 100)|round|int }}%"></i></div>
+  <p class="controls"><button type="button" id="shuffle">shuffle</button></p>
+  <form id="finish" method="post" action="/finish" class="finish"><input type="hidden" name="game" value="{{ gm.id }}"><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span> <button>finish</button></form>
+</section>
+<section class="found card">
+  <h2>found</h2>
+  <ul id="found">{% for w in gm.words %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% endfor %}</ul>
+</section>
+</div>
+<script>
+const $ = id => document.getElementById(id), game = document.querySelector('.game'), gameId = game.dataset.game, code = game.dataset.code;
+const cv = $('tome'), ctx = cv.getContext('2d'), word = $('word'), msg = $('msg'), score = $('score'), found = $('found'), fill = $('fill'), timer = $('timer');
+const CFG = {hp: 5, speed: 70, rest: [6, 12], attack: [6, 12], telegraph: 1, maxBullets: 4, inv: 1, pages: [1.2, 28], ink: [0.9, 30, 45], letters: [1.5, 45]};
+const BOX = {x: 60, y: 66, w: 200, h: 136}, COL = {'#': '#ffffff', '+': '#8a8a8a', y: '#ffd93b', r: '#ff3b3b'};
+const TAUNT = {rest: 'it is thinking.', telegraph: 'the tome opens...', pages: 'pages fly.', ink: 'ink rains.', letters: 'stray letters.'};
+// sprites: . clear, # white, + grey, y yellow, r red, decoded once into small canvases
+const sprite = (rows, s = 1) => {
+  const c = document.createElement('canvas'), g = c.getContext('2d');
+  c.width = rows[0].length * s; c.height = rows.length * s;
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (COL[ch]) { g.fillStyle = COL[ch]; g.fillRect(x * s, y * s, s, s); } }));
+  return c;
+};
+const BOOK = ['................................', '..######################........', '.#++++++++++++++++++++++#.......', '.#++++++++++++++++++++++##......',
+  '.#+#################++++#+#.....', '.#+#...............#++++#+#.....', '.#+#...............#++++#+#.....', '.#+#..###.....###..#++++#+#.....',
+  '.#+#..###.....###..#++++#+#.....', '.#+#..#.#.....#.#..#++++#+#.....', '.#+#...............#++++#+#.....', '.#+#...............#++++#+#.....',
+  '.#+#....#######....#++++#+#.....', '.#+#...##.....##...#++++#+#.....', '.#+#...............#++++#+#.....', '.#+#...............#++++#+#.....',
+  '.#+#################++++#+#.....', '.#++++++++++++++++++++++#+#.....', '.#++++++++++++++++++++++#+#.....', '.#++++++++++++++++++++++##......',
+  '..######################.#......', '..#######################.......', '................................', '................................'];
+// face rows 7, 8, 9 (eyes) and 12, 13 (mouth), 13 columns from column 5
+const FACE = {idle: ['..###.....###', '..###.....###', '..#.#.....#.#', '....#######..', '...##.....##.'],
+  angry: ['.##.......##.', '...##...##...', '..#.#...#.#..', '..#########..', '..#.......#..'],
+  flinch: ['..#.#...#.#..', '...#.....#...', '..#.#...#.#..', '.....#####...', '.....#...#...']};
+const book = {};
+for (const [name, rows] of Object.entries(FACE)) {
+  const b = BOOK.slice();
+  [7, 8, 9, 12, 13].forEach((r, i) => b[r] = b[r].slice(0, 5) + rows[i] + b[r].slice(18));
+  book[name] = sprite(b, 2);
+}
+const PAGE = sprite(['########', '#......#', '#.####.#', '#......#', '#.####.#', '#......#', '#.####.#', '#......#', '#......#', '########']);
+const INK = sprite(['..#..', '.###.', '#####', '.###.', '..#..']);
+const HERO = [sprite(['....y....', '..yyyyy..', '.yyyyyyy.', 'yyyyyyyyy', 'yyyy#yyyy', 'yyyyyyyyy', '.yyyyyyy.', '..yyyyy..', '....y....']),
+  sprite(['....y....', '..yyyyy..', '.yy#yyyy.', 'yyyyyyyyy', 'yyyyyyyyy', 'yyyyyyyyy', '.yyyyyyy.', '..yyyyy..', '....y....'])];
+const ring = [0, 60, 120, 180, 240, 300].map(a => [160 + Math.round(32 * Math.cos(a * Math.PI / 180)), 134 + Math.round(32 * Math.sin(a * Math.PI / 180))]);
+const tiles = [{x: 160, y: 134, letter: code[0], centre: true}, ...ring.map(([x, y], i) => ({x, y, letter: code[i + 1]})),
+  {x: 248, y: 134, kind: 'enter', label: '[ok]'}, {x: 72, y: 134, kind: 'delete', label: '[del]'}];
+const outer = tiles.slice(1, 7), STRAY = [...'abcdefghijklmnopqrstuvwxyz'].filter(l => !code.includes(l));
+const held = {}, S = {hp: CFG.hp, x: 160, y: 188, inv: 0, flash: 0, face: 'idle', faceT: 0, phase: 'rest', left: 0, pattern: 'pages', spawn: 0, extra: 0, over: false, taunt: 'the tome glares at you.', t: 0, side: 1, inkX: -99};
+let bullets = [], last = 0, msgOk = true;
+const rnd = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pad = n => String(n).padStart(2, '0');
+const tick = () => {
+  const s = Math.max(0, Math.floor((Date.now() - +timer.dataset.start) / 1000));
+  timer.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+};
+const flash = (text, ok) => { msg.textContent = text; msgOk = ok; };
+const face = (name, secs) => { S.face = name; S.faceT = secs; };
+const onTile = t => Math.abs(S.x - t.x) <= 10 && Math.abs(S.y - t.y) <= 10;
+const addFound = (w, pan) => {
+  const li = document.createElement('li');
+  li.textContent = w;
+  if (pan) li.className = 'pangram';
+  found.insertBefore(li, [...found.children].find(x => x.textContent > w) || null);
+};
+const nextPhase = () => {
+  if (S.phase === 'rest') { S.phase = 'telegraph'; S.left = CFG.telegraph; S.pattern = ['pages', 'ink', 'letters'][Math.floor(Math.random() * 3)]; }
+  else if (S.phase === 'telegraph') { S.phase = 'attack'; S.left = rnd(...CFG.attack); S.spawn = 0; }
+  else { S.phase = 'rest'; S.left = rnd(...CFG.rest); }
+  S.taunt = TAUNT[S.phase === 'attack' ? S.pattern : S.phase];
+};
+const spawn = () => {
+  if (S.pattern === 'pages') bullets.push({kind: 'pages', x: rnd(BOX.x + 4, BOX.x + BOX.w - 12), y: BOX.y - 10, vx: rnd(-12, 12), vy: CFG.pages[1], w: 8, h: 10});
+  else if (S.pattern === 'ink') {
+    let x = rnd(BOX.x + 2, BOX.x + BOX.w - 7);
+    for (let i = 0; i < 8 && Math.abs(x - S.inkX) < 20; i++) x = rnd(BOX.x + 2, BOX.x + BOX.w - 7);
+    S.inkX = x;
+    bullets.push({kind: 'ink', x, y: BOX.y - 5, vx: 0, vy: CFG.ink[1], ay: CFG.ink[2], w: 5, h: 5});
+  } else {
+    S.side = -S.side;
+    bullets.push({kind: 'letters', x: S.side > 0 ? BOX.x - 6 : BOX.x + BOX.w, y: rnd(BOX.y + 4, BOX.y + BOX.h - 12), vx: S.side * CFG.letters[1], vy: 0, w: 5, h: 8, ch: STRAY[Math.floor(Math.random() * STRAY.length)]});
+  }
+};
+const die = () => {
+  S.over = true;
+  S.face = 'slam';
+  S.taunt = 'the tome closes.';
+  bullets = [];
+  setTimeout(() => $('finish').submit(), 1500);
+};
+async function submit() {
+  const w = word.textContent;
+  if (!w) return flash('stand on letters and select them first', false);
+  const r = await fetch('/guess', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({game: gameId, word: w})});
+  const d = await r.json();
+  flash(d.msg, d.ok);
+  word.textContent = '';
+  if (!d.ok) { face('angry', 1.5); S.extra++; S.taunt = 'the tome laughs.'; return; }
+  const pan = d.msg === 'pangram!';
+  face('flinch', 1);
+  S.taunt = pan ? 'the tome trembles.' : 'the tome flinches.';
+  if (S.phase === 'attack') S.left = 0;
+  if (pan) S.hp = Math.min(CFG.hp, S.hp + 1);
+  score.textContent = `${d.found.length} / ${score.dataset.total} words, ${d.score} points, ${d.rank}`;
+  fill.style.width = `${Math.round(100 * d.score / score.dataset.max)}%`;
+  addFound(w, pan);
+  if (d.done) { S.over = true; setTimeout(() => location.href = `/done/${gameId}`, 900); }
+}
+const select = () => {
+  if (S.over) return;
+  const t = tiles.find(onTile);
+  if (!t) return;
+  if (t.kind === 'enter') submit();
+  else if (t.kind === 'delete') word.textContent = word.textContent.slice(0, -1);
+  else word.textContent += t.letter;
+};
+const update = dt => {
+  S.t += dt;
+  if (S.over) return;
+  const dx = (held.right ? 1 : 0) - (held.left ? 1 : 0), dy = (held.down ? 1 : 0) - (held.up ? 1 : 0);
+  if (dx || dy) {
+    const l = Math.hypot(dx, dy);
+    S.x = clamp(S.x + dx / l * CFG.speed * dt, BOX.x + 5, BOX.x + BOX.w - 5);
+    S.y = clamp(S.y + dy / l * CFG.speed * dt, BOX.y + 5, BOX.y + BOX.h - 5);
+  }
+  S.left -= dt;
+  if (S.left <= 0) nextPhase();
+  if (S.phase === 'attack') {
+    S.spawn -= dt;
+    if (S.spawn <= 0 && bullets.length < CFG.maxBullets) {
+      spawn();
+      if (S.extra > 0 && bullets.length < CFG.maxBullets) { S.extra--; spawn(); }
+      S.spawn = CFG[S.pattern][0];
+    }
+  }
+  for (const b of bullets) { b.vy += (b.ay || 0) * dt; b.x += b.vx * dt; b.y += b.vy * dt; }
+  bullets = bullets.filter(b => b.x > BOX.x - 12 && b.x < BOX.x + BOX.w + 4 && b.y < BOX.y + BOX.h + 4);
+  S.inv = Math.max(0, S.inv - dt);
+  S.flash = Math.max(0, S.flash - dt);
+  S.faceT -= dt;
+  if (S.faceT <= 0 && S.face !== 'slam') S.face = 'idle';
+  if (S.inv > 0) return;
+  // circle against rectangle: distance from the hexagon centre to the nearest point of the projectile
+  const hit = bullets.findIndex(b => Math.hypot(S.x - clamp(S.x, b.x, b.x + b.w), S.y - clamp(S.y, b.y, b.y + b.h)) < 4.5);
+  if (hit < 0) return;
+  bullets.splice(hit, 1);
+  S.hp--;
+  S.inv = CFG.inv;
+  S.flash = 0.3;
+  if (S.hp <= 0) die();
+};
+const text = (s, x, y, align, colour) => { ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); };
+const draw = () => {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, 320, 240);
+  ctx.font = 'bold 8px monospace';
+  ctx.textBaseline = 'top';
+  text(S.taunt, 160, 3, 'center', '#fff');
+  if (S.face === 'slam') { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(129, 51, 62, 10); ctx.fillStyle = '#8a8a8a'; ctx.fillRect(131, 53, 58, 6); }
+  else ctx.drawImage(book[S.face], 128, 13 + (S.face === 'idle' && Math.floor(S.t * 1.6) % 2 ? 1 : 0));
+  if (S.phase === 'telegraph' && Math.floor(S.t * 8) % 2) { ctx.strokeStyle = '#ffd93b'; ctx.lineWidth = 1; ctx.strokeRect(126.5, 11.5, 68, 52); }
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = S.flash > 0 ? '#ff3b3b' : '#fff';
+  ctx.strokeRect(BOX.x - 1, BOX.y - 1, BOX.w + 2, BOX.h + 2);
+  ctx.lineWidth = 1;
+  for (const t of tiles) {
+    const on = onTile(t), col = t.centre ? '#ffd93b' : '#fff';
+    if (t.kind) { text(t.label, t.x, t.y - 4, 'center', on ? '#ffd93b' : '#8a8a8a'); continue; }
+    ctx.strokeStyle = col;
+    ctx.strokeRect(t.x - 9.5, t.y - 9.5, 19, 19);
+    if (on) { ctx.fillStyle = col; ctx.fillRect(t.x - 9, t.y - 9, 18, 18); }
+    text(t.letter.toUpperCase(), t.x, t.y - 4, 'center', on ? '#000' : col);
+  }
+  for (const b of bullets) {
+    if (b.kind === 'letters') text(b.ch, b.x, b.y, 'left', '#fff');
+    else ctx.drawImage(b.kind === 'pages' ? PAGE : INK, Math.round(b.x), Math.round(b.y));
+  }
+  if (!(S.inv > 0 && Math.floor(S.t * 10) % 2)) ctx.drawImage(HERO[Math.floor(S.t * 4) % 2], Math.round(S.x) - 4, Math.round(S.y) - 4);
+  text(`hp [${'#'.repeat(S.hp)}${'.'.repeat(CFG.hp - S.hp)}] ${S.hp}/${CFG.hp}`, BOX.x - 1, 210, 'left', '#ff3b3b');
+  text(word.textContent.toUpperCase(), BOX.x + BOX.w + 1, 210, 'right', '#fff');
+  text(msg.textContent, 160, 226, 'center', msgOk ? '#fff' : '#8a8a8a');
+};
+const loop = t => {
+  const dt = Math.max(0, Math.min(0.05, (t - last) / 1000));
+  last = t;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+};
+const KEYS = {w: 'up', a: 'left', s: 'down', d: 'right', arrowup: 'up', arrowleft: 'left', arrowdown: 'down', arrowright: 'right'};
+document.addEventListener('keydown', e => {
+  if (e.target.closest?.('form, details') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (KEYS[k]) held[KEYS[k]] = true;
+  else if (k === 'z' || k === ' ' || k === 'enter') { if (!e.repeat) select(); }
+  else if (k === 'backspace') word.textContent = word.textContent.slice(0, -1);
+  else return;
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => { const k = KEYS[e.key.toLowerCase()]; if (k) held[k] = false; });
+addEventListener('blur', () => Object.keys(held).forEach(k => held[k] = false));
+for (const b of document.querySelectorAll('.pad button')) {
+  b.addEventListener('pointerdown', e => { held[b.dataset.k] = true; e.preventDefault(); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => held[b.dataset.k] = false);
+}
+document.querySelector('.select').addEventListener('pointerdown', e => { select(); e.preventDefault(); });
+$('shuffle').onclick = () => {
+  const ls = outer.map(t => t.letter).sort(() => Math.random() - 0.5);
+  outer.forEach((t, i) => t.letter = ls[i]);
+};
+ctx.imageSmoothingEnabled = false;
+S.left = rnd(...CFG.rest);
+tick();
+setInterval(tick, 1000);
+requestAnimationFrame(t => { last = t; loop(t); });
+</script>
+{% endblock %}

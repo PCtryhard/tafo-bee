@@ -1,0 +1,23 @@
+body{--bg:#000000;--fg:#ffffff;--muted:#8a8a8a;--tile:#333333;--accent:#ffffff;--card:#111111;--radius:0;--font:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;--good:#ffffff;--bad:#ff3b3b}
+nav{border-bottom-color:#333}
+button,.button{color:#000}
+.themes summary,.themes div{border:1px solid #fff}
+.game{flex-direction:column;align-items:center;gap:.6rem}
+#tome{display:block;width:100%;max-width:640px;aspect-ratio:4/3;background:#000;image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid #fff}
+.hud{display:flex;flex-direction:column;align-items:center;gap:.3rem;width:100%;max-width:640px}
+.hud .bar{max-width:22rem}
+.bar{background:#333}
+.hint{text-align:center;margin:0;font-size:.85rem}
+.controls{justify-content:center;margin:.2rem 0}
+.found{width:100%;max-width:640px}
+.pangram{color:#ffd93b}
+.touch{display:none;width:100%;max-width:640px;justify-content:space-between;align-items:center;touch-action:none;user-select:none}
+.pad{display:grid;grid-template:repeat(3,52px)/repeat(3,52px);gap:2px}
+.pad button,.select{min-height:0;padding:0;background:#222;color:#fff;border:1px solid #fff}
+.pad button{font-size:1.2rem}
+.pad button:nth-child(1){grid-area:1/2}
+.pad button:nth-child(2){grid-area:2/1}
+.pad button:nth-child(3){grid-area:2/3}
+.pad button:nth-child(4){grid-area:3/2}
+.select{width:96px;height:96px;border-radius:50%;justify-content:center;font-size:1.1rem}
+@media (pointer:coarse){.touch{display:flex}.hint{display:none}}
