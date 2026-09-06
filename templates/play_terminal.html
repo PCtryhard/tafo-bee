@@ -5,7 +5,7 @@
 <div class="game" data-game="{{ gm.id }}" data-code="{{ gm.code }}">
 <div id="term">
   <div id="status"><span>bee@tafo</span><span>puzzle {{ gm.code }}</span><span id="score" data-total="{{ gm.total }}" data-max="{{ gm.max }}">words {{ gm.words|length }}/{{ gm.total }}  pts {{ gm.score }}  rank {{ gm.rank }}</span><span id="fill" data-pct="{{ (gm.pct * 100)|round|int }}"></span><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span><form id="finish" method="post" action="/finish"><input type="hidden" name="game" value="{{ gm.id }}"><button type="submit">exit</button></form></div>
-  <div id="hive">{% for l in gm.code %}<span data-letter="{{ l }}"{% if loop.first %} class="centre"{% endif %}>[ {{ l }} ]</span>{% endfor %}</div>
+  <div id="hive">{% for l in gm.code[1:4] %}<span data-letter="{{ l }}">[ {{ l }} ]</span>{% endfor %}<span data-letter="{{ gm.code[0] }}" class="centre">[ {{ gm.code[0] }} ]</span>{% for l in gm.code[4:] %}<span data-letter="{{ l }}">[ {{ l }} ]</span>{% endfor %}</div>
   <div id="hist"></div>
   <p id="prompt"><span id="ps">PS C:\bee\{{ gm.code }}&gt; </span><span id="word"></span><span class="cursor"></span></p>
   <p id="msg" hidden></p>
@@ -16,7 +16,7 @@
 const $ = id => document.getElementById(id), game = document.querySelector('.game');
 const gameId = game.dataset.game, code = game.dataset.code, PS = $('ps').textContent;
 const hist = $('hist'), word = $('word'), score = $('score'), fill = $('fill'), timer = $('timer'), found = $('found');
-const cells = [...document.querySelectorAll('#hive span')], outer = cells.slice(1);
+const cells = [...document.querySelectorAll('#hive span')], outer = cells.filter(c => !c.classList.contains('centre'));
 const ERR = {'too short': ['WordTooShortException', 'TooShort'], 'missing centre letter': ['CentreLetterMissingException', 'MissingCentre'],
   'bad letters': ['LetterNotInHiveException', 'BadLetters'], 'already found': ['WordAlreadyFoundException', 'AlreadyFound'],
   'not in word list': ['WordNotFoundException', 'NotInWordList'], 'this game is over': ['GameOverException', 'GameOver']};

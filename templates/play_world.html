@@ -61,8 +61,8 @@ const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el
 const shake = hard => restart(world, hard ? 'shake2' : 'shake');
 const dip = el => { el.classList.add('dip'); setTimeout(() => el.classList.remove('dip'), 120); };
 const ripple = times => letters.forEach((b, i) => { for (let k = 0; k < times; k++) setTimeout(() => restart(b.el, 'hop'), i * 40 + k * 420); });
-// pointy top hexagon test, widened by a pixel so neighbours overlap and walking between them never falls
-const under = (x, y) => blocks.find(b => { const dx = Math.abs(x - b.x), dy = Math.abs(y - b.y), R = b.R + 1; return dx <= R * SQ3 / 2 && dy <= R - dx / SQ3; });
+// pointy top hexagon test, widened by half the gap so the gaps between letters are bridged and nobody falls between them
+const under = (x, y) => blocks.find(b => { const dx = Math.abs(x - b.x), dy = Math.abs(y - b.y), R = b.R + 7; return dx <= R * SQ3 / 2 && dy <= R - dx / SQ3; });
 // screen relative input: undo the camera tilt so a diagonal on screen is a diagonal on the ground
 const dir = () => {
   const sx = (held.right ? 1 : 0) - (held.left ? 1 : 0), sy = ((held.down ? 1 : 0) - (held.up ? 1 : 0)) / TILT;

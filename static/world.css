@@ -40,7 +40,7 @@ body{--bg:#eef8e8;--fg:#1f3d22;--muted:#5c7a5f;--tile:#cfe8c3;--accent:#2e8b57;-
 .shake2{animation:shake2 .3s linear}
 .pad,.jump{display:none;position:absolute;bottom:.5rem;touch-action:none;user-select:none;z-index:2}
 .pad{left:.5rem;grid-template:repeat(3,52px)/repeat(3,52px);gap:2px}
-.pad button{min-height:0;padding:0;font-size:1.2rem;opacity:.75;border-radius:8px}
+.pad button{min-height:0;padding:0;font-size:1.2rem;opacity:.75;border-radius:8px;justify-content:center;line-height:1}
 .pad button:nth-child(1){grid-area:1/2}
 .pad button:nth-child(2){grid-area:2/1}
 .pad button:nth-child(3){grid-area:2/3}

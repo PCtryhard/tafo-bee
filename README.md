@@ -61,7 +61,8 @@ SCOWL British English, see `data/README.md`. Replace `data/words.txt` to change 
 - A daily streak counts consecutive days with a game on that day's daily code, and survives until the end of the next day.
 - The daily puzzle now uses the Zurich date rather than the server's local date.
 - Themes became modes: every mode owns `templates/play_<mode>.html` and `static/<mode>.css`, selected by name in `play()`; the six palette themes were deleted and `classic` stays the default and fallback.
-- world: only a jump produces a landing event. Walking off a block just drops, so walking across the honeycomb never adds letters.
+- world: only a jump produces a landing event, and the gaps between letter blocks are bridged in the hit test (each hexagon counts 7 px wider), so walking across the honeycomb never drops or adds letters; walking off the outer edge still drops.
+- tome: the book uses a little yellow for the gilt page edges and red for the ribbon, on top of the palette rule, because an old bible needs both; every face change, the opening of an attack and the slam draw four ghost copies for a smear frame.
 - world: hexagon tops and the lake are inline SVG polygons, not `clip-path`, because Chrome drops clipped faces from 3D depth sorting and the centre's walls were painting over its neighbours.
 - world: blocks keep a 7 px gap so their walls read as separate prisms; a tree is three stacked prisms, a fox three small ones on a keyframe path.
 - world: the camera is a plain 56 degree tilt with no turn, the ground is finite at about 920 by 570 world px with the horizon a little below the HUD, as chosen at the checkpoint.

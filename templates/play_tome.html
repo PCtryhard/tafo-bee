@@ -21,7 +21,7 @@
 const $ = id => document.getElementById(id), game = document.querySelector('.game'), gameId = game.dataset.game, code = game.dataset.code;
 const cv = $('tome'), ctx = cv.getContext('2d'), word = $('word'), msg = $('msg'), score = $('score'), found = $('found'), fill = $('fill'), timer = $('timer');
 const CFG = {hp: 5, speed: 70, rest: [6, 12], attack: [6, 12], telegraph: 1, maxBullets: 4, inv: 1, pages: [1.2, 28], ink: [0.9, 30, 45], letters: [1.5, 45]};
-const BOX = {x: 60, y: 74, w: 200, h: 130}, COL = {'#': '#ffffff', '+': '#8a8a8a', y: '#ffd93b', r: '#ff3b3b'};
+const BOX = {x: 60, y: 78, w: 200, h: 128}, COL = {'#': '#ffffff', '+': '#8a8a8a', y: '#ffd93b', r: '#ff3b3b'};
 const TAUNT = {rest: 'it is thinking.', telegraph: 'the tome opens...', pages: 'pages fly.', ink: 'ink rains.', letters: 'stray letters.'};
 // sprites: . clear, # white, + grey, y yellow, r red, decoded once into small canvases
 const text = (s, x, y, align, colour) => { ctx.fillStyle = colour; ctx.textAlign = align; ctx.fillText(s, x, y); };
@@ -31,29 +31,40 @@ const sprite = (rows, s = 1) => {
   rows.forEach((row, y) => [...row].forEach((ch, x) => { if (COL[ch]) { g.fillStyle = COL[ch]; g.fillRect(x * s, y * s, s, s); } }));
   return c;
 };
-// an open book, 48 by 28, drawn at double size: two white pages rising to a grey spine, a grey cover below, the face is drawn on top
-const OPEN = Array.from({length: 28}, (_, r) => {
-  if (r >= 23) return r === 27 ? `.${'#'.repeat(46)}.` : `#${'+'.repeat(46)}#`;
-  const n = Math.min(44, 4 + 6 * r), side = '.'.repeat((48 - n) / 2), row = `${side}${'#'.repeat(n)}${side}`;
-  return r ? `${row.slice(0, 23)}++${row.slice(25)}` : row;
+// an old bible, 56 by 32, drawn at double size: two pages rising to the spine, gilt fore edges, text lines, a thick cover with a dotted ornament, a red ribbon
+const OPEN = Array.from({length: 32}, (_, r) => {
+  let row;
+  if (r >= 30) row = `${'.'.repeat(27)}${r === 30 ? 'rr' : 'r.'}${'.'.repeat(27)}`;
+  else if (r >= 24) row = r === 29 ? `.${'#'.repeat(54)}.` : r === 26 ? `#+${'.+'.repeat(26)}+#` : `#${'+'.repeat(54)}#`;
+  else if (r >= 8) row = `.+y${(r === 21 || r === 23 ? '.++.++.++.++.++.++.++.++' : '#'.repeat(24))}++${(r === 21 || r === 23 ? '++.++.++.++.++.++.++.++.' : '#'.repeat(24))}y+.`;
+  else { const n = Math.min(50, 26 + 8 * r), side = '.'.repeat((56 - n) / 2); row = `${side}${'#'.repeat(n)}${side}`; }
+  return r >= 1 && r < 24 ? `${row.slice(0, 27)}${r >= 8 ? 'rr' : '++'}${row.slice(29)}` : r >= 24 && r < 30 ? `${row.slice(0, 27)}rr${row.slice(29)}` : row;
 });
-const book = sprite(OPEN, 2), BX = 112, BY = 13;
-const rect = (x, y, w, h, colour = '#000') => { ctx.fillStyle = colour; ctx.fillRect(BX + x, BY + y, w, h); };
+const book = sprite(OPEN, 2), BX = 104, BY = 10, OFF = {x: 0, y: 0};
+const rect = (x, y, w, h, colour = '#000') => { ctx.fillStyle = colour; ctx.fillRect(BX + OFF.x + x, BY + OFF.y + y, w, h); };
 const drawFace = name => {
-  if (name === 'flinch') { text('x', BX + 24, BY + 19, 'center', '#000'); text('x', BX + 72, BY + 19, 'center', '#000'); rect(44, 36, 8, 6); rect(46, 38, 4, 2, '#fff'); return; }
-  rect(20, 20, 8, 6); rect(68, 20, 8, 6);
-  if (name === 'angry') { [0, 1, 2].forEach(i => { rect(16 + i * 4, 12 + i * 2, 4, 2); rect(76 - i * 4, 12 + i * 2, 4, 2); }); rect(36, 34, 24, 10); rect(38, 36, 20, 2, '#fff'); return; }
-  rect(38, 36, 20, 2); rect(34, 38, 4, 2); rect(58, 38, 4, 2); rect(32, 40, 2, 2); rect(62, 40, 2, 2);
+  const [lx, rx] = [30, 82];
+  if (name === 'flinch') { text('x', BX + OFF.x + lx, BY + OFF.y + 19, 'center', '#000'); text('x', BX + OFF.x + rx, BY + OFF.y + 19, 'center', '#000'); rect(50, 34, 12, 6); rect(52, 36, 8, 2, '#fff'); return; }
+  rect(lx - 4, 20, 8, 6); rect(rx - 4, 20, 8, 6);
+  if (name === 'angry') { [0, 1, 2].forEach(i => { rect(lx - 8 + i * 4, 12 + i * 2, 4, 2); rect(rx + 4 - i * 4, 12 + i * 2, 4, 2); }); rect(42, 32, 28, 10); rect(44, 34, 24, 2, '#fff'); return; }
+  rect(46, 34, 20, 2); rect(42, 36, 4, 2); rect(66, 36, 4, 2); rect(40, 38, 2, 2); rect(70, 38, 2, 2);
+};
+// the closed bible for the slam, then the book with its face, ghosted sideways while it smears
+const drawBook = (dx, dy) => {
+  OFF.x = dx; OFF.y = dy;
+  if (S.face === 'slam') { rect(2, 30, 108, 24, '#8a8a8a'); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(BX + dx + 2, BY + dy + 30, 108, 24); rect(6, 34, 100, 4, '#ffd93b'); rect(54, 30, 4, 32, '#ff3b3b'); return; }
+  ctx.drawImage(book, BX + dx, BY + dy + (S.face === 'idle' && Math.floor(S.t * 1.6) % 2 ? 1 : 0));
+  drawFace(S.face);
 };
 const PAGE = sprite(['########', '#......#', '#.####.#', '#......#', '#.####.#', '#......#', '#.####.#', '#......#', '#......#', '########']);
 const INK = sprite(['..#..', '.###.', '#####', '.###.', '..#..']);
 const HERO = [sprite(['....y....', '..yyyyy..', '.yyyyyyy.', 'yyyyyyyyy', 'yyyy#yyyy', 'yyyyyyyyy', '.yyyyyyy.', '..yyyyy..', '....y....']),
   sprite(['....y....', '..yyyyy..', '.yy#yyyy.', 'yyyyyyyyy', 'yyyyyyyyy', 'yyyyyyyyy', '.yyyyyyy.', '..yyyyy..', '....y....'])];
-const ring = [0, 60, 120, 180, 240, 300].map(a => [160 + Math.round(32 * Math.cos(a * Math.PI / 180)), 139 + Math.round(32 * Math.sin(a * Math.PI / 180))]);
-const tiles = [{x: 160, y: 139, letter: code[0], centre: true}, ...ring.map(([x, y], i) => ({x, y, letter: code[i + 1]})),
-  {x: 248, y: 139, kind: 'enter', label: '[ok]'}, {x: 72, y: 139, kind: 'delete', label: '[del]'}];
+const ring = [0, 60, 120, 180, 240, 300].map(a => [160 + Math.round(32 * Math.cos(a * Math.PI / 180)), 142 + Math.round(32 * Math.sin(a * Math.PI / 180))]);
+const tiles = [{x: 160, y: 142, letter: code[0], centre: true}, ...ring.map(([x, y], i) => ({x, y, letter: code[i + 1]})),
+  {x: 248, y: 142, kind: 'enter', label: '[ok]'}, {x: 72, y: 142, kind: 'delete', label: '[del]'}];
 const outer = tiles.slice(1, 7), STRAY = [...'abcdefghijklmnopqrstuvwxyz'].filter(l => !code.includes(l));
-const held = {}, S = {hp: CFG.hp, x: 160, y: 192, inv: 0, flash: 0, face: 'idle', faceT: 0, phase: 'rest', left: 0, pattern: 'pages', spawn: 0, extra: 0, over: false, taunt: 'the tome glares at you.', t: 0, side: 1, inkX: -99};
+const held = {}, S = {hp: CFG.hp, x: 160, y: 194, inv: 0, flash: 0, face: 'idle', faceT: 0, phase: 'rest', left: 0, pattern: 'pages', spawn: 0, extra: 0, over: false, taunt: 'the tome glares at you.', t: 0, side: 1, inkX: -99, smear: 0};
 let bullets = [], last = 0, msgOk = true;
 const rnd = (a, b) => a + Math.random() * (b - a), clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const pad = n => String(n).padStart(2, '0');
@@ -62,7 +73,7 @@ const tick = () => {
   timer.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 };
 const flash = (text, ok) => { msg.textContent = text; msgOk = ok; };
-const face = (name, secs) => { S.face = name; S.faceT = secs; };
+const face = (name, secs) => { S.face = name; S.faceT = secs; S.smear = 0.22; };
 const onTile = t => Math.abs(S.x - t.x) <= 10 && Math.abs(S.y - t.y) <= 10;
 const addFound = (w, pan) => {
   const li = document.createElement('li');
@@ -72,7 +83,7 @@ const addFound = (w, pan) => {
 };
 const nextPhase = () => {
   if (S.phase === 'rest') { S.phase = 'telegraph'; S.left = CFG.telegraph; S.pattern = ['pages', 'ink', 'letters'][Math.floor(Math.random() * 3)]; }
-  else if (S.phase === 'telegraph') { S.phase = 'attack'; S.left = rnd(...CFG.attack); S.spawn = 0; }
+  else if (S.phase === 'telegraph') { S.phase = 'attack'; S.left = rnd(...CFG.attack); S.spawn = 0; S.smear = 0.25; }
   else { S.phase = 'rest'; S.left = rnd(...CFG.rest); }
   S.taunt = TAUNT[S.phase === 'attack' ? S.pattern : S.phase];
 };
@@ -91,6 +102,7 @@ const spawn = () => {
 const die = () => {
   S.over = true;
   S.face = 'slam';
+  S.smear = 0.35;
   S.taunt = 'the tome closes.';
   bullets = [];
   setTimeout(() => $('finish').submit(), 1500);
@@ -123,6 +135,7 @@ const select = () => {
 };
 const update = dt => {
   S.t += dt;
+  S.smear = Math.max(0, S.smear - dt);
   if (S.over) return;
   const dx = (held.right ? 1 : 0) - (held.left ? 1 : 0), dy = (held.down ? 1 : 0) - (held.up ? 1 : 0);
   if (dx || dy) {
@@ -162,9 +175,9 @@ const draw = () => {
   ctx.font = 'bold 8px monospace';
   ctx.textBaseline = 'top';
   text(S.taunt, 160, 3, 'center', '#fff');
-  if (S.face === 'slam') { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(113, 57, 94, 12); ctx.fillStyle = '#8a8a8a'; ctx.fillRect(115, 59, 90, 8); }
-  else { ctx.drawImage(book, BX, BY + (S.face === 'idle' && Math.floor(S.t * 1.6) % 2 ? 1 : 0)); drawFace(S.face); }
-  if (S.phase === 'telegraph' && Math.floor(S.t * 8) % 2) { ctx.strokeStyle = '#ffd93b'; ctx.lineWidth = 1; ctx.strokeRect(108.5, 10.5, 104, 62); }
+  if (S.smear > 0) { ctx.globalAlpha = 0.35; for (const dx of [-10, -5, 5, 10]) drawBook(dx, 0); ctx.globalAlpha = 1; }
+  drawBook(0, 0);
+  if (S.phase === 'telegraph' && Math.floor(S.t * 8) % 2) { ctx.strokeStyle = '#ffd93b'; ctx.lineWidth = 1; ctx.strokeRect(101.5, 7.5, 117, 68); }
   ctx.lineWidth = 2;
   ctx.strokeStyle = S.flash > 0 ? '#ff3b3b' : '#fff';
   ctx.strokeRect(BOX.x - 1, BOX.y - 1, BOX.w + 2, BOX.h + 2);
