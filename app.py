@@ -7,7 +7,7 @@ import game, store
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", secrets.token_hex(16))
-THEMES = ["classic", "world", "tome", "terminal", "loveydovey"]
+THEMES = ["classic", "world", "tome", "terminal", "loveydovey", "zen"]
 ZURICH = ZoneInfo("Europe/Zurich")
 YEAR = 365 * 24 * 3600
 daily = lru_cache(game.daily_code)

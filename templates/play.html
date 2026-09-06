@@ -17,6 +17,7 @@
   <ul id="found">{% for w in gm.words %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% endfor %}</ul>
 </section>
 </div>
+{% block extra %}{% endblock %}
 <script>
 const $ = id => document.getElementById(id), hive = document.querySelector('.hive');
 const gameId = document.querySelector('.game').dataset.game;

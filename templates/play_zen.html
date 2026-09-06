@@ -1,0 +1,49 @@
+{% extends "play.html" %}
+{% block extra %}
+<canvas id="steppe" width="256" height="144"></canvas>
+<script>
+// the steppe: a 256 px wide pixel canvas stretched over the viewport, sky bands, pixel clouds, two hill lines and long grass bent by wind waves running left to right
+const cv = document.getElementById('steppe'), sc = cv.getContext('2d'), W = 256;
+let H = 144, horizon = 80, blades = [], hills = [], seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const SKY = ['#2f62b8', '#3f76cc', '#5a8edb', '#84acea', '#b3cdf3'], GRASS = ['#a9b348', '#bcbd52', '#93a23c', '#c9c05a'], FAR = ['#7c8a3a', '#6d7d33'];
+const CLOUDS = Array.from({length: 7}, () => ({x: rnd() * W, y: 6 + rnd() * 34, v: 1.5 + rnd() * 2.5, puffs: Array.from({length: 7}, () => [rnd() * 34 - 17, rnd() * 8 - 4, 4 + rnd() * 7])}));
+const size = () => {
+  H = Math.max(120, Math.round(W * innerHeight / innerWidth));
+  cv.width = W; cv.height = H;
+  horizon = Math.round(H * 0.5);
+  seed = 11;
+  hills = [0, 1].map(k => Array.from({length: W}, (_, x) => Math.round(horizon + 4 + k * 5 - (4 + 3 * k) * Math.sin(x / (30 + 12 * k)) - 2 * Math.sin(x / 7 + k))));
+  blades = [];
+  for (let i = 0; i < 150; i++) blades.push({x: rnd() * W, y: horizon + 6 + rnd() * 10, h: 4 + rnd() * 5, c: FAR[i % 2], p: rnd() * 6});
+  for (let i = 0; i < 300; i++) blades.push({x: rnd() * W, y: H - rnd() * (H - horizon - 18), h: 8 + rnd() * 16, c: GRASS[i % 4], p: rnd() * 6});
+  blades.sort((a, b) => a.y - b.y);
+};
+const wind = (x, t) => 0.5 * Math.sin(x / 13 - t * 2.4) + 0.3 * Math.sin(x / 5 + t * 3.3) + 1.8 * Math.max(0, Math.sin(x / 42 - t * 1.15)) ** 3;
+const px = (x, y, c) => { sc.fillStyle = c; sc.fillRect(x, y, 1, 1); };
+const draw = t => {
+  sc.fillStyle = SKY[SKY.length - 1]; sc.fillRect(0, 0, W, H);
+  SKY.forEach((c, i) => { sc.fillStyle = c; sc.fillRect(0, Math.round(horizon * i / SKY.length), W, Math.ceil(horizon / SKY.length) + 1); });
+  for (const cl of CLOUDS) {
+    const cx = ((cl.x + cl.v * t) % (W + 60)) - 30;
+    for (const shade of [['#a9b6c6', 2], ['#f6f8fb', 0]]) for (const [dx, dy, r] of cl.puffs) {
+      sc.fillStyle = shade[0];
+      sc.beginPath(); sc.arc(Math.round(cx + dx), Math.round(cl.y + dy + shade[1]), r, 0, 7); sc.fill();
+    }
+  }
+  hills.forEach((line, k) => { sc.fillStyle = k ? '#5f7a33' : '#7d9a44'; line.forEach((y, x) => sc.fillRect(x, y, 1, H - y)); });
+  sc.fillStyle = '#8b8f3c'; sc.fillRect(0, horizon + 14, W, H);
+  sc.fillStyle = '#767b32'; sc.fillRect(0, horizon + 40, W, H);
+  for (const b of blades) {
+    const bend = wind(b.x + b.p * 9, t) * b.h * 0.4;
+    for (let k = 0; k < b.h; k++) px(Math.round(b.x + bend * (k / b.h) ** 2), Math.round(b.y - k), b.c);
+  }
+};
+let start = 0, raf = 0;
+const frame = ms => { draw((ms - start) / 1000); raf = requestAnimationFrame(frame); };
+size();
+addEventListener('resize', size);
+if (still) draw(0); else requestAnimationFrame(ms => { start = ms; frame(ms); });
+</script>
+{% endblock %}

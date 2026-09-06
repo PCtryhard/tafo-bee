@@ -17,9 +17,9 @@ app.py            routes, cookies, admin auth
 game.py           puzzle codes, generation, validation, scoring, ranks
 store.py          sqlite schema + queries
 templates/        base.html index.html play.html done.html admin.html stats.html
-templates/        play_world.html play_tome.html play_terminal.html play_loveydovey.html
+templates/        play_world.html play_tome.html play_terminal.html play_loveydovey.html play_zen.html
 static/style.css  shared base and the classic board
-static/           world.css tome.css terminal.css loveydovey.css
+static/           world.css tome.css terminal.css loveydovey.css zen.css
 data/words.txt    dictionary (do not edit by hand)
 data/exclude.txt  optional, words to remove at load
 tools/build_dict.sh
@@ -47,6 +47,8 @@ Do not add files outside this list without a reason written in README "decisions
 | `templates/play_terminal.html` script | 150 |
 | `static/terminal.css` | 90 |
 | `static/loveydovey.css` | 90, no script |
+| `templates/play_zen.html` script | 120 |
+| `static/zen.css` | 60 |
 - Comments: fully lowercase, very brief, only where the code is not self explanatory. No docstrings longer than one line. No section banners.
 - Names: short but real words (`words`, `centre`, `code`, `found`). British spelling in identifiers and copy (`centre`, `colour`).
 - Type hints on function signatures, nowhere else.

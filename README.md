@@ -8,13 +8,14 @@ Pick a random puzzle, today's puzzle (the same for everyone on a given day) or t
 
 ## boards
 
-The theme dropdown picks one of five boards, each with its own layout or mechanics (see `docs/THEMES.md`):
+The theme dropdown picks one of six boards, each with its own layout or mechanics (see `docs/THEMES.md`):
 
 - **classic**: the plain honeycomb, the default.
 - **world**: a 3D field of hexagon blocks; walk with wasd or the arrows, jump with space, land on a block to add its letter, jump on ok to send. Trees, bushes, foxes and a lake around it. Touch screens get a d-pad and a jump button.
 - **tome**: a pixel art boss fight against an evil dictionary. Steer onto letter tiles and select them with z or space while dodging pages, ink and stray letters. Five hit points, zero ends the game.
 - **terminal**: a console. Type a word and press enter, rejected words come back as red error blocks, `Get-Help` lists the commands.
 - **loveydovey**: the classic board with pixel 3D hearts laid out as a heart.
+- **zen**: the classic board in grey pixels over an endless animated steppe, wind in the grass and clouds drifting by, nothing else.
 
 ## run locally
 
@@ -70,6 +71,8 @@ SCOWL British English, see `data/README.md`. Replace `data/words.txt` to change 
 - tome: touch controls sit in a bar under the canvas rather than over it, so the whole box stays visible on a phone.
 - terminal: the prompt accepts every letter plus the hyphen, because commands need letters outside the puzzle; the server still answers `bad letters` with a red block for guesses.
 - loveydovey: hearts are pixel polygons with a darker offset copy behind them for the 3D look; the floating hearts replay only when the message state changes.
+- zen: `play.html` gained an empty `extra` block at the end of its body so a mode can add a canvas and its own script while keeping the classic board and its 60 line script untouched.
+- zen: the steppe is drawn on a 256 px wide canvas stretched over the viewport; the animation is continuous (positions wrap, waves are sine based) rather than a fixed length loop, so it never jumps or restarts.
 - Chrome cannot render a headless window under about 500 px, so the 390 px layout was checked in an emulated mobile viewport instead.
 
 ## licence

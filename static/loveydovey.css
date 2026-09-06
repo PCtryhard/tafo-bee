@@ -12,6 +12,8 @@ input{border-radius:var(--radius)}
 .hive button::before{background:linear-gradient(var(--hi),var(--hi)) 16% 24%/11.2% 12.5% no-repeat,var(--face)}
 .hive button::after{background:var(--side);transform:translate(6px,6px);z-index:-2}
 .hive .centre{width:60px;height:53px;font-size:1.4rem;background:none;color:var(--centre-fg);--face:var(--centre);--side:#c2325f;--hi:#ff94b3}
+.hive .centre::before{transform:rotate(180deg)}
+.hive .centre::after{transform:rotate(180deg) translate(-6px,-6px)}
 .hive button:hover{animation:beat .6s ease-in-out infinite}
 .hive button:active{animation:none;transform:scale(1.18);transition-duration:.05s}
 .hive button:nth-child(1){left:100px;top:75px}
