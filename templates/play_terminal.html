@@ -1,65 +1,134 @@
 {% extends "base.html" %}
 {% block title %}bee {{ gm.code }}{% endblock %}
 {% block body %}
-<div class="game" data-game="{{ gm.id }}">
-<section class="board">
-  <p class="code">{{ gm.code }}</p>
-  <p id="msg" class="msg">&nbsp;</p>
-  <p id="word" class="word"></p>
-  <div class="hive">{% for l in gm.code %}<button type="button" data-letter="{{ l }}"{% if loop.first %} class="centre"{% endif %}>{{ l }}</button>{% endfor %}</div>
-  <p class="controls"><button type="button" id="del">delete</button> <button type="button" id="shuffle">shuffle</button> <button type="button" id="enter">enter</button></p>
-  <p id="score" data-total="{{ gm.total }}" data-max="{{ gm.max }}">{{ gm.words|length }} / {{ gm.total }} words, {{ gm.score }} points, {{ gm.rank }}</p>
-  <div class="bar"><i id="fill" style="width:{{ (gm.pct * 100)|round|int }}%"></i></div>
-  <form method="post" action="/finish" class="finish"><input type="hidden" name="game" value="{{ gm.id }}"><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span> <button>finish</button></form>
-</section>
-<section class="found card">
-  <h2>found</h2>
-  <ul id="found">{% for w in gm.words %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% endfor %}</ul>
-</section>
+<canvas id="rain"></canvas>
+<div class="game" data-game="{{ gm.id }}" data-code="{{ gm.code }}">
+<div id="term">
+  <div id="status"><span>bee@tafo</span><span>puzzle {{ gm.code }}</span><span id="score" data-total="{{ gm.total }}" data-max="{{ gm.max }}">words {{ gm.words|length }}/{{ gm.total }}  pts {{ gm.score }}  rank {{ gm.rank }}</span><span id="fill" data-pct="{{ (gm.pct * 100)|round|int }}"></span><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span><form id="finish" method="post" action="/finish"><input type="hidden" name="game" value="{{ gm.id }}"><button type="submit">exit</button></form></div>
+  <div id="hive">{% for l in gm.code %}<span data-letter="{{ l }}"{% if loop.first %} class="centre"{% endif %}>[ {{ l }} ]</span>{% endfor %}</div>
+  <div id="hist"></div>
+  <p id="prompt"><span id="ps">PS C:\bee\{{ gm.code }}&gt; </span><span id="word"></span><span class="cursor"></span></p>
+  <p id="msg" hidden></p>
+  <ul id="found" hidden>{% for w in gm.words %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% endfor %}</ul>
+</div>
 </div>
 <script>
-const $ = id => document.getElementById(id), hive = document.querySelector('.hive');
-const gameId = document.querySelector('.game').dataset.game;
-const outer = [...hive.querySelectorAll('button:not(.centre)')];
-const letters = () => [...hive.querySelectorAll('button')].map(b => b.dataset.letter);
-const word = $('word'), msg = $('msg'), score = $('score'), found = $('found'), fill = $('fill'), timer = $('timer');
-const add = l => { if (letters().includes(l)) word.textContent += l; };
-const del = () => { word.textContent = word.textContent.slice(0, -1); };
-const flash = (text, ok) => { msg.textContent = text; msg.className = ok ? 'msg ok' : 'msg bad'; };
+const $ = id => document.getElementById(id), game = document.querySelector('.game');
+const gameId = game.dataset.game, code = game.dataset.code, PS = $('ps').textContent;
+const hist = $('hist'), word = $('word'), score = $('score'), fill = $('fill'), timer = $('timer'), found = $('found');
+const cells = [...document.querySelectorAll('#hive span')], outer = cells.slice(1);
+const ERR = {'too short': ['WordTooShortException', 'TooShort'], 'missing centre letter': ['CentreLetterMissingException', 'MissingCentre'],
+  'bad letters': ['LetterNotInHiveException', 'BadLetters'], 'already found': ['WordAlreadyFoundException', 'AlreadyFound'],
+  'not in word list': ['WordNotFoundException', 'NotInWordList'], 'this game is over': ['GameOverException', 'GameOver']};
+const HELP = ['Get-Found     ls    list the words found so far, pangrams marked *', 'Clear-Host    cls   clear the screen',
+  'Shuffle-Hive        shuffle the six outer letters', 'Exit-Game           finish this game and see the summary',
+  'Get-Help            this list', '', 'anything else is a word guess. only the seven letters above count.'].join('\n');
 const pad = n => String(n).padStart(2, '0');
+const print = (text, cls) => {
+  const el = document.createElement('div');
+  if (cls) el.className = cls;
+  el.textContent = text;
+  hist.appendChild(el);
+  hist.scrollTop = hist.scrollHeight;
+};
+const errorBlock = (input, msg, exc, id, cat = 'InvalidWord') => print(`${input} : ${msg}\nAt line:1 char:1\n+ ${input}\n+ ${'~'.repeat(input.length)}\n    + CategoryInfo          : ${cat}: (${input}:String) [], ${exc}\n    + FullyQualifiedErrorId : ${id}`, 'err');
 const tick = () => {
   const s = Math.max(0, Math.floor((Date.now() - +timer.dataset.start) / 1000));
   timer.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
 };
-async function submit() {
-  const w = word.textContent;
-  if (!w) return;
-  const r = await fetch('/guess', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({game: gameId, word: w})});
-  const d = await r.json();
-  flash(d.msg, d.ok);
-  word.textContent = '';
-  if (!d.ok) return;
-  score.textContent = `${d.found.length} / ${score.dataset.total} words, ${d.score} points, ${d.rank}`;
-  fill.style.width = `${Math.round(100 * d.score / score.dataset.max)}%`;
+const bar = pct => { fill.textContent = `[${'#'.repeat(Math.round(pct / 10))}${'.'.repeat(10 - Math.round(pct / 10))}]`; };
+const status = d => {
+  score.textContent = `words ${found.children.length}/${score.dataset.total}  pts ${d.score}  rank ${d.rank}`;
+  bar(100 * d.score / score.dataset.max);
+};
+const addFound = (w, pan) => {
   const li = document.createElement('li');
   li.textContent = w;
-  if (d.msg === 'pangram!') li.className = 'pangram';
+  if (pan) li.className = 'pangram';
   found.insertBefore(li, [...found.children].find(x => x.textContent > w) || null);
+};
+const listFound = () => {
+  const ws = [...found.children].map(li => li.textContent + (li.className ? '*' : ''));
+  if (!ws.length) return print('no words found yet.');
+  const width = Math.max(...ws.map(w => w.length)) + 2, per = Math.max(1, Math.floor(60 / width)), lines = [];
+  for (let i = 0; i < ws.length; i += per) lines.push(ws.slice(i, i + per).map(w => w.padEnd(width)).join('').trimEnd());
+  print(`${ws.length} words found\n${lines.join('\n')}`);
+};
+const shuffle = () => {
+  const ls = outer.map(c => c.dataset.letter).sort(() => Math.random() - 0.5);
+  outer.forEach((c, i) => { c.dataset.letter = ls[i]; c.textContent = `[ ${ls[i]} ]`; });
+  print('hive shuffled.');
+};
+async function guess(w) {
+  const r = await fetch('/guess', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({game: gameId, word: w})});
+  const d = await r.json();
+  $('msg').textContent = d.msg;
+  if (d.ok) {
+    const pan = d.msg === 'pangram!';
+    print(`${w} ${'.'.repeat(Math.max(3, 18 - w.length))} ${String(d.points).padStart(2)} pts  ${d.msg}`, pan ? 'pan' : 'ok');
+    addFound(w, pan);
+    status(d);
+  } else {
+    const [exc, id] = ERR[d.msg] || ['InvalidWordException', 'InvalidWord'];
+    errorBlock(w, d.msg, exc, id);
+  }
   if (d.done) location.href = `/done/${gameId}`;
 }
-hive.addEventListener('click', e => { if (e.target.dataset.letter) { add(e.target.dataset.letter); e.target.blur(); } });
-$('del').onclick = del;
-$('enter').onclick = submit;
-$('shuffle').onclick = () => {
-  const ls = outer.map(b => b.dataset.letter).sort(() => Math.random() - 0.5);
-  outer.forEach((b, i) => { b.dataset.letter = ls[i]; b.textContent = ls[i]; });
+const COMMANDS = {'get-found': listFound, ls: listFound, 'clear-host': () => hist.replaceChildren(), cls: () => hist.replaceChildren(),
+  'shuffle-hive': shuffle, 'exit-game': () => $('finish').submit(), 'get-help': () => print(HELP)};
+const run = input => {
+  print(PS + input, 'cmd');
+  word.textContent = '';
+  if (!input) return;
+  const cmd = COMMANDS[input.toLowerCase()];
+  if (cmd) return cmd();
+  if (input.includes('-')) return errorBlock(input, `the term '${input}' is not recognised as a command. Get-Help lists the commands.`, 'CommandNotFoundException', 'CommandNotFound', 'ObjectNotFound');
+  guess(input.toLowerCase());
 };
 document.addEventListener('keydown', e => {
-  if (e.target.closest?.('form, details') || e.ctrlKey || e.metaKey) return;
-  if (e.key === 'Backspace') del(); else if (e.key === 'Enter') submit(); else if (/^[a-z]$/i.test(e.key)) add(e.key.toLowerCase()); else return;
+  if (e.target.closest?.('form, details') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key === 'Backspace') word.textContent = word.textContent.slice(0, -1);
+  else if (e.key === 'Enter') run(word.textContent.trim());
+  else if (/^[a-z-]$/i.test(e.key)) word.textContent += e.key;
+  else return;
   e.preventDefault();
 });
+document.getElementById('hive').addEventListener('click', e => { if (e.target.dataset.letter) word.textContent += e.target.dataset.letter; });
+print(`bee terminal, type a word and press enter. Get-Help lists the commands.\ncentre letter ${code[0]}, ${score.dataset.total} words to find.`);
+if (found.children.length) listFound();
+bar(+fill.dataset.pct);
 tick();
 setInterval(tick, 1000);
+// background rain: falling hex glyphs with a fading trail, paused when hidden or when motion is reduced
+const rain = $('rain'), rc = rain.getContext('2d');
+let cols = [], last = 0, raf = 0;
+const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const size = () => {
+  rain.width = innerWidth;
+  rain.height = innerHeight;
+  cols = Array.from({length: Math.ceil(rain.width / 18)}, () => ({y: Math.random() * rain.height, v: 60 + Math.random() * 140}));
+  rc.fillStyle = '#000';
+  rc.fillRect(0, 0, rain.width, rain.height);
+};
+const drop = t => {
+  const dt = Math.min(0.1, (t - last) / 1000);
+  last = t;
+  rc.fillStyle = 'rgba(0,0,0,.08)';
+  rc.fillRect(0, 0, rain.width, rain.height);
+  rc.fillStyle = '#33ff33';
+  rc.font = '15px monospace';
+  cols.forEach((c, i) => {
+    rc.fillText('0123456789abcdef'[Math.random() * 16 | 0], i * 18, c.y);
+    c.y += c.v * dt;
+    if (c.y > rain.height + 20) c.y = -Math.random() * 200;
+  });
+  raf = requestAnimationFrame(drop);
+};
+const start = () => { if (!still && !raf) { last = performance.now(); raf = requestAnimationFrame(drop); } };
+const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+size();
+start();
+addEventListener('resize', size);
+document.addEventListener('visibilitychange', () => document.hidden ? stop() : start());
 </script>
 {% endblock %}

@@ -1,0 +1,25 @@
+body{--bg:#000000;--fg:#33ff33;--muted:#1f9e1f;--tile:#002200;--centre:#ffff00;--accent:#33ff33;--card:#001100;--font:"Cascadia Mono",Consolas,"DejaVu Sans Mono",monospace;--radius:0;--red:#ff5555}
+#rain{position:fixed;inset:0;z-index:-1;opacity:.35}
+nav{border-bottom-color:var(--muted);background:#000}
+.themes summary,.themes div{border-color:var(--fg)}
+#term{display:flex;flex-direction:column;height:calc(100vh - 7rem);min-height:26rem;border:1px solid var(--fg);background:rgba(0,0,0,.88);padding:.6rem .8rem;box-shadow:0 0 12px #33ff3355}
+#status{display:flex;flex-wrap:wrap;gap:.3rem 1.2rem;align-items:center;margin:0;padding-bottom:.4rem;border-bottom:1px solid var(--muted);white-space:pre;font-size:.9rem}
+#status form{margin-left:auto}
+#status button{min-height:0;padding:.1rem .6rem;background:none;border:1px solid var(--fg);color:var(--fg);font-size:.9rem}
+#status button:hover{background:var(--fg);color:#000;filter:none}
+#hive{display:flex;flex-wrap:wrap;justify-content:center;gap:.2rem .5rem;margin:.5rem 0;font-size:2.2rem;line-height:1}
+#hive span{cursor:pointer;user-select:none;color:var(--muted);min-width:48px;min-height:48px;display:inline-flex;align-items:center;justify-content:center;padding:.1rem .2rem}
+#hive span:hover{color:var(--fg)}
+#hive .centre{color:#7dff7d;font-weight:700;text-decoration:underline;text-underline-offset:.2em;text-shadow:0 0 8px var(--fg)}
+#hist{flex:1;overflow-y:auto;white-space:pre-wrap;word-break:break-word;font-size:.95rem;line-height:1.4;padding:.3rem 0}
+#hist .cmd{color:#7dff7d;margin-top:.5rem}
+#hist .ok{color:var(--fg)}
+#hist .pan{color:#ffff00;font-weight:700}
+#hist .err{color:var(--red)}
+#prompt{margin:.3rem 0 0;white-space:pre-wrap;border-top:1px solid var(--muted);padding-top:.4rem}
+#word{color:#fff}
+.cursor::after{content:"";display:inline-block;width:.6em;height:1.1em;background:var(--fg);vertical-align:text-bottom;margin-left:1px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (min-width:900px){#hive{font-size:2.5rem}}
+@media (max-width:600px){#term{height:auto;min-height:0}#hist{max-height:40vh;min-height:8rem}#status{font-size:.75rem;gap:.2rem .8rem}#hive{font-size:1.9rem}}
+@media (prefers-reduced-motion:reduce){.cursor::after{animation:none}}
