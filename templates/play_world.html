@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}bee {{ gm.code }}{% endblock %}
+{% macro prism(cls, x, y, r, h, z=0, text="", attrs="") -%}
+<div class="p {{ cls }}" style="--x:{{ x }}px;--y:{{ y }}px;--R:{{ r }}px;--h:{{ h }}px;--z:{{ z }}px" {{ attrs|safe }}><b><span>{{ text }}</span></b>{% for i in range(6) %}<i style="--i:{{ i }}"></i>{% endfor %}</div>
+{%- endmacro %}
+{% macro tree(x, y) -%}
+{{ prism("trunk", x, y, 7, 26) }}{{ prism("leaf", x, y, 30, 16, 22) }}{{ prism("leaf light", x, y, 19, 14, 38) }}
+{%- endmacro %}
+{% block body %}
+<div class="game" data-game="{{ gm.id }}">
+<section class="hud">
+  <p class="code">{{ gm.code }}</p>
+  <p id="msg" class="msg">&nbsp;</p>
+  <p id="word" class="word"></p>
+  <p id="score" data-total="{{ gm.total }}" data-max="{{ gm.max }}">{{ gm.words|length }} / {{ gm.total }} words, {{ gm.score }} points, {{ gm.rank }}</p>
+  <div class="bar"><i id="fill" style="width:{{ (gm.pct * 100)|round|int }}%"></i></div>
+  <form method="post" action="/finish" class="finish"><input type="hidden" name="game" value="{{ gm.id }}"><span id="timer" data-start="{{ (gm.started * 1000)|int }}">00:00</span> <button>finish</button></form>
+</section>
+<div class="stage">
+<div class="scene"><div id="world" class="world">
+  <div class="ground"></div>
+  <div class="lake"></div><div class="lake inner"></div>
+  {% set spots = [(300, 220), (231, 220), (369, 220), (265, 160), (335, 160), (265, 280), (335, 280)] %}
+  {% for l in gm.code %}{{ prism("block" + (" centre" if loop.first else ""), spots[loop.index0][0], spots[loop.index0][1], 40, 34 if loop.first else 24, 0, l, 'data-letter="' + l + '" data-kind="letter"') }}{% endfor %}
+  {{ prism("block enter", 470, 220, 40, 24, 0, "ok", 'data-kind="enter"') }}
+  {{ prism("block delete", 130, 220, 40, 24, 0, "del", 'data-kind="delete"') }}
+  {{ tree(60, 62) }}{{ tree(540, 70) }}{{ tree(70, 372) }}{{ tree(300, 42) }}
+  {{ prism("bush", 150, 40, 14, 10) }}{{ prism("bush", 470, 44, 12, 9) }}{{ prism("bush", 36, 230, 15, 11) }}{{ prism("bush", 160, 396, 13, 9) }}{{ prism("bush", 560, 200, 12, 8) }}
+  {% for n in [1, 2] %}<div class="fox f{{ n }}">{{ prism("fur", 0, 0, 9, 10) }}{{ prism("fur", 12, 0, 6, 7, 5) }}{{ prism("tail", -12, 0, 5, 5, 3) }}</div>{% endfor %}
+  <div id="shadow" class="shadow" style="--x:300px;--y:340px;--z:0px"></div>
+  {{ prism("player", 300, 340, 15, 12, 0, "", 'id="player"') }}
+</div></div>
+<div class="pad"><button data-k="up">&#9650;</button><button data-k="left">&#9664;</button><button data-k="right">&#9654;</button><button data-k="down">&#9660;</button></div>
+<button class="jump">jump</button>
+</div>
+<p class="hint muted">wasd / arrows move, space jumps, land on a letter to add it. enter and backspace still work.</p>
+<p class="controls"><button type="button" id="shuffle">shuffle</button></p>
+<section class="found card">
+  <h2>found</h2>
+  <ul id="found">{% for w in gm.words %}<li{% if is_pangram(w, gm.code) %} class="pangram"{% endif %}>{{ w }}</li>{% endfor %}</ul>
+</section>
+</div>
+<script>
+const $ = id => document.getElementById(id), gameId = document.querySelector('.game').dataset.game;
+const world = $('world'), word = $('word'), msg = $('msg'), score = $('score'), found = $('found'), fill = $('fill'), timer = $('timer');
+const player = $('player'), shadow = $('shadow');
+const CFG = {speed: 170, jump: 250, g: 720, w: 600, h: 420, edge: 12};
+const SQ3 = Math.sqrt(3), ANG = Math.PI / 6, TILT = Math.cos(56 * Math.PI / 180);
+const num = (el, name) => parseFloat(el.style.getPropertyValue(name));
+const blocks = [...document.querySelectorAll('.p.block')].map(el => ({el, x: num(el, '--x'), y: num(el, '--y'), R: num(el, '--R'), h: num(el, '--h'), kind: el.dataset.kind}));
+const letters = blocks.filter(b => b.kind === 'letter'), outer = letters.slice(1), enter = blocks.find(b => b.kind === 'enter');
+const held = {}, p = {x: 300, y: 340, z: 0, vz: 0, air: false};
+let last = 0, rest = 0;
+const pad = n => String(n).padStart(2, '0');
+const tick = () => {
+  const s = Math.max(0, Math.floor((Date.now() - +timer.dataset.start) / 1000));
+  timer.textContent = `${pad(Math.floor(s / 60))}:${pad(s % 60)}`;
+};
+const flash = (text, ok) => { msg.textContent = text; msg.className = ok ? 'msg ok' : 'msg bad'; };
+const restart = (el, cls) => { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+const shake = hard => restart(world, hard ? 'shake2' : 'shake');
+const dip = el => { el.classList.add('dip'); setTimeout(() => el.classList.remove('dip'), 120); };
+const ripple = times => letters.forEach((b, i) => { for (let k = 0; k < times; k++) setTimeout(() => restart(b.el, 'hop'), i * 40 + k * 420); });
+// pointy top hexagon test, widened by a pixel so neighbours overlap and walking between them never falls
+const under = (x, y) => blocks.find(b => { const dx = Math.abs(x - b.x), dy = Math.abs(y - b.y), R = b.R + 1; return dx <= R * SQ3 / 2 && dy <= R - dx / SQ3; });
+// screen relative input: undo the camera tilt and turn so "up" walks up the screen
+const dir = () => {
+  const sx = (held.right ? 1 : 0) - (held.left ? 1 : 0), sy = ((held.down ? 1 : 0) - (held.up ? 1 : 0)) / TILT;
+  if (!sx && !sy) return null;
+  const gx = sx * Math.cos(ANG) - sy * Math.sin(ANG), gy = sx * Math.sin(ANG) + sy * Math.cos(ANG), l = Math.hypot(gx, gy);
+  return [gx / l, gy / l];
+};
+const addFound = (w, pan) => {
+  const li = document.createElement('li');
+  li.textContent = w;
+  if (pan) li.className = 'pangram';
+  found.insertBefore(li, [...found.children].find(x => x.textContent > w) || null);
+};
+async function submit() {
+  const w = word.textContent;
+  if (!w) return flash('nothing to send yet', false);
+  const r = await fetch('/guess', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({game: gameId, word: w})});
+  const d = await r.json();
+  flash(d.msg, d.ok);
+  word.textContent = '';
+  if (!d.ok) { restart(enter.el, 'bad'); return shake(true); }
+  const pan = d.msg === 'pangram!';
+  ripple(pan ? 2 : 1);
+  score.textContent = `${d.found.length} / ${score.dataset.total} words, ${d.score} points, ${d.rank}`;
+  fill.style.width = `${Math.round(100 * d.score / score.dataset.max)}%`;
+  addFound(w, pan);
+  if (d.done) setTimeout(() => location.href = `/done/${gameId}`, 900);
+}
+const land = b => {
+  if (!b) return;
+  dip(b.el);
+  shake(false);
+  if (b.kind === 'enter') submit();
+  else if (b.kind === 'delete') word.textContent = word.textContent.slice(0, -1);
+  else word.textContent += b.el.dataset.letter;
+};
+const jump = () => { if (!p.air) { p.vz = CFG.jump; p.air = p.jumped = true; } };
+const loop = t => {
+  const dt = Math.max(0, Math.min(0.05, (t - last) / 1000));
+  last = t;
+  const d = dir();
+  if (d) {
+    p.x = Math.min(CFG.w - CFG.edge, Math.max(CFG.edge, p.x + d[0] * CFG.speed * dt));
+    p.y = Math.min(CFG.h - CFG.edge, Math.max(CFG.edge, p.y + d[1] * CFG.speed * dt));
+  }
+  const b = under(p.x, p.y);
+  rest = b ? b.h : 0;
+  // grounded: step up onto a block, or drop off one without a landing event, only jumps land letters
+  if (!p.air && rest > p.z) p.z = rest;
+  else if (!p.air && rest < p.z) p.air = true;
+  if (p.air) {
+    p.vz -= CFG.g * dt;
+    p.z += p.vz * dt;
+    if (p.vz < 0 && p.z <= rest) { p.z = rest; p.vz = 0; p.air = false; if (p.jumped) land(b); p.jumped = false; }
+  }
+  for (const [k, v] of [['--x', p.x], ['--y', p.y], ['--z', p.z]]) { player.style.setProperty(k, `${v}px`); shadow.style.setProperty(k, `${k === '--z' ? rest : v}px`); }
+  shadow.style.setProperty('--s', 1 - Math.min(0.6, (p.z - rest) / 160));
+  requestAnimationFrame(loop);
+};
+const KEYS = {w: 'up', a: 'left', s: 'down', d: 'right', arrowup: 'up', arrowleft: 'left', arrowdown: 'down', arrowright: 'right'};
+document.addEventListener('keydown', e => {
+  if (e.target.closest?.('form, details') || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.toLowerCase();
+  if (KEYS[k]) held[KEYS[k]] = true;
+  else if (k === ' ') { if (!e.repeat) jump(); }
+  else if (k === 'enter') submit();
+  else if (k === 'backspace') word.textContent = word.textContent.slice(0, -1);
+  else return;
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => { const k = KEYS[e.key.toLowerCase()]; if (k) held[k] = false; });
+addEventListener('blur', () => Object.keys(held).forEach(k => held[k] = false));
+for (const b of document.querySelectorAll('.pad button')) {
+  b.addEventListener('pointerdown', e => { held[b.dataset.k] = true; e.preventDefault(); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(ev, () => held[b.dataset.k] = false);
+}
+document.querySelector('.jump').addEventListener('pointerdown', e => { jump(); e.preventDefault(); });
+$('shuffle').onclick = () => {
+  const ls = outer.map(b => b.el.dataset.letter).sort(() => Math.random() - 0.5);
+  outer.forEach((b, i) => { b.el.dataset.letter = ls[i]; b.el.querySelector('span').textContent = ls[i]; });
+};
+tick();
+setInterval(tick, 1000);
+requestAnimationFrame(t => { last = t; loop(t); });
+</script>
+{% endblock %}
